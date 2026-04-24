@@ -28,7 +28,7 @@ C_SOURCES += \
 ASM_SOURCES = startup.s
 
 CFLAGS = -mcpu=cortex-m3 $(C_INCLUDES) -mthumb -nostartfiles -ffreestanding -g -O0
-LDFLAGS = -T link_min.ld 
+LDFLAGS = -T link_lm3s6965evb.ld 
 
 
 .PHONY: all clean run debug
