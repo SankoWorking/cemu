@@ -12,8 +12,8 @@ C_INCLUDES += \
 	-I. \
 	-I$(FREERTOS_DIR)/include \
 	-I$(PORTABLE_DIR) \
-	-Iapp \
-	-Ibsp
+	-Iapp/include \
+	-Ibsp/include
 
 C_SOURCES += \
 	$(FREERTOS_DIR)/tasks.c \
@@ -22,8 +22,8 @@ C_SOURCES += \
 	$(FREERTOS_DIR)/timers.c \
 	$(MEMMANG_DIR)/heap_4.c \
 	$(PORTABLE_DIR)/port.c \
-	$(wildcard app/*.c) \
-	$(wildcard bsp/*.c)
+	$(wildcard app/src/*.c) \
+	$(wildcard bsp/src/*.c)
 
 ASM_SOURCES = startup.s
 

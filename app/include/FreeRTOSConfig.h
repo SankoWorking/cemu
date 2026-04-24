@@ -6,7 +6,7 @@
 #define configUSE_MUTEXES                       1
 #define configUSE_QUEUE_SETS                    1
 #define configCPU_CLOCK_HZ                      ((unsigned long)20000000)
-#define configTICK_RATE_HZ                      ((TickType_t)100)
+#define configTICK_RATE_HZ                      ((TickType_t)1000)
 #define configMAX_PRIORITIES                    ( 5 )
 #define configMINIMAL_STACK_SIZE                ( 128 )
 #define configTOTAL_HEAP_SIZE                   ( ( size_t ) ( 20 * 1024 ) ) /* 分配 20K 给 FreeRTOS 堆 */
