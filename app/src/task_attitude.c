@@ -5,9 +5,6 @@ static TaskHandle_t attitudeTaskHandle = NULL;
 static void Attitude_Task(void * pvParameters) {
     for(;;) {
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-        Puts_UART("Get Data\n");
-        Putu_UART(imu_data.timestamp);
-        Putc_UART('\n');
     }
 }
 

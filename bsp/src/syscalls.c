@@ -3,12 +3,13 @@
 #include <errno.h>
 #include <stddef.h>
 #include "uart.h"
+#include "task_logger.h"
 
 typedef char * caddr_t;
 // 解决 _write 报错，将 printf 重定向到你的 UART
 int _write(int file, char *ptr, int len) {
     for (int i = 0; i < len; i++) {
-        Putc_UART(ptr[i]); // 调用你之前写的串口发送函数
+        Log_Msg(MOD_SYS, ptr);
     }
     return len;
 }

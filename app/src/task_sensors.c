@@ -4,7 +4,7 @@ IMUData_t imu_data;
 static TaskHandle_t targetTaskHandle = NULL;
 
 static void Process_Sensor_data(void){
-    imu_data.timestamp = xTaskGetTickCount();
+    imu_data.Timestamp = xTaskGetTickCount();
 }
 
 static void Sensor_Task(void * pvParameters) {

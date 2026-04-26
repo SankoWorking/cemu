@@ -48,11 +48,41 @@
                             任务间共享数据结构
 ================================================================================
 */
+
+//TODO 注释 IMU数据
 typedef struct {
     float acc[3];
     float gyro[3];
-    uint32_t timestamp;
+    uint32_t Timestamp;
 } IMUData_t;
 extern IMUData_t imu_data;
+
+//TODO 注释
+// 消息类型枚举
+typedef enum {
+    LOG_TYPE_DATA = 0,
+    LOG_TYPE_MSG  = 1
+} LogType_t;
+
+//TODO 模块 ID 枚举
+typedef enum {
+    MOD_SYS = 0,
+    MOD_IMU,
+    MOD_PID,
+    MOD_NAV
+} ModuleID_t;
+
+//TODO 注释
+typedef struct {
+    LogType_t LogType;
+    ModuleID_t ModuleID;
+    
+    union {
+        float Data[4];
+        char  Msg[16];
+    } payload;
+    
+    uint32_t Timestamp;
+} LogMessage_t;
 
 #endif /* #ifndef __TASKS_CONFIG_H__ */
