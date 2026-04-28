@@ -3,7 +3,7 @@
 
 #include "tasks_config.h"
 #include "queue.h"
-
+#include <common/mavlink.h>
 #include "task_logger.h"
 
 extern QueueHandle_t SensorQueue;

@@ -15,14 +15,6 @@ void Puts_UART(const char *s) {
 	}
 }
 
-static int Getc_UART(char *c){
-	if (!(UART1_FR_R & (1 << 4))) {
-		*c = (char)(UART1_DR_R & 0xFF);
-		return 1;
-	}
-	return 0;
-}
-
 //TODO 注释 初始化了串口的中断。
 void Init_UART1_Interrupt(void) {
     *(volatile uint32_t *)0x400FE104 |= (1 << 1); // RCGC1 UART
@@ -56,21 +48,22 @@ void Init_UART1_Interrupt(void) {
 void UART1_Handler(void) {
     //读取串口MIS
     uint32_t status = *(volatile uint32_t *)(UART1_BASE + 0x040);
+    UART1_IC_R = status; // UARTICR
     
 	//定义是否切换任务的标记
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
     // --- 处理【接收】部分 (RX 或 RT 超时) ---
     if (status & ((1 << 4) | (1 << 6))) {
-		uint8_t data;
-		while (Getc_UART(&data)){
-        	xQueueSendFromISR(SensorQueue, &data, &xHigherPriorityTaskWoken);
-		}
+		while (!(UART1_FR_R & (1 << 4))) { 
+            uint8_t data = (uint8_t)(UART1_DR_R & 0xFF);
+            
+            // 尝试发送到队列
+            xQueueSendFromISR(SensorQueue, &data, &xHigherPriorityTaskWoken);
+        }
     }
-
-	//清除中断标志位
-    UART1_IC_R = status; // UARTICR
-
+    
     // 3. 统一进行上下文切换
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    
 }

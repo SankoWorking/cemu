@@ -62,7 +62,8 @@ extern IMUData_t imu_data;
 typedef enum {
     LOG_TYPE_DATA = 0,
     LOG_TYPE_MSG  = 1,
-    LOG_TYPE_RAW_HEX = 2
+    LOG_TYPE_RAW_HEX = 2,
+    LOG_TYPE_HEARTBEAT = 3
 } LogType_t;
 
 //TODO 模块 ID 枚举
@@ -82,9 +83,26 @@ typedef struct {
         float Data[4];
         char  Msg[16];
         uint8_t Raw[4];
+        struct {
+            uint8_t type;
+            uint8_t autopilot;
+            uint8_t status;
+            uint8_t mode;
+        } Heartbeat;
     } payload;
     
     uint32_t Timestamp;
 } LogMessage_t;
+
+// 存放心跳包的结构体
+typedef struct {
+    uint8_t remote_system_id;
+    uint8_t is_connected;
+    uint32_t last_heartbeat_ms;
+    uint8_t base_mode;
+    uint8_t system_status;
+    uint32_t Timestamp;
+} SystemStatus_t;
+extern SystemStatus_t SytemStatus;
 
 #endif /* #ifndef __TASKS_CONFIG_H__ */

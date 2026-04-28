@@ -13,7 +13,8 @@ C_INCLUDES += \
 	-I$(FREERTOS_DIR)/include \
 	-I$(PORTABLE_DIR) \
 	-Iapp/include \
-	-Ibsp/include
+	-Ibsp/include \
+	-Imavlink
 
 C_SOURCES += \
 	$(FREERTOS_DIR)/tasks.c \
@@ -41,7 +42,7 @@ $(TARGET): $(ASM_SOURCES) $(C_SOURCES)
 
 run: $(TARGET)
 	$(QEMU) -M lm3s6965evb -kernel $(TARGET) -nographic \
-	-chardev udp,id=con0,port=0,localaddr=127.0.0.1,localport=4560 \
+	-chardev udp,id=con0,port=0,localaddr=127.0.0.1,localport=14550 \
 	-serial mon:stdio \
 	-serial chardev:con0
 clean:

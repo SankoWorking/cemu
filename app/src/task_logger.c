@@ -40,7 +40,15 @@ void Logging_Task(void *pvParameters) {
                                 ModuleNames[Log.ModuleID],
                                 Log.payload.Raw[0], Log.payload.Raw[1],
                                 Log.payload.Raw[2], Log.payload.Raw[3]);
-}
+            }else if (Log.LogType == LOG_TYPE_HEARTBEAT) {
+                    len = snprintf(Buffer, sizeof(Buffer), 
+                   "[%lu] [MAV] HB: T:%d A:%d S:%d M:%d\r\n",
+                   Log.Timestamp,
+                   Log.payload.Heartbeat.type,
+                   Log.payload.Heartbeat.autopilot,
+                   Log.payload.Heartbeat.status,
+                   Log.payload.Heartbeat.mode);
+            }
 
             if (len > 0) {
                 Puts_UART(Buffer);
@@ -58,8 +66,6 @@ void Init_Log_Task(void) {
                 PRIO_LOGGING_TASK, 
                 NULL);
 }
-
-
 
 //TODO 注释 发送数值日志
 void Log_Data(ModuleID_t module, float d0, float d1, float d2, float d3) {
@@ -97,6 +103,19 @@ void Log_Raw(ModuleID_t module, const uint8_t* data, uint8_t len) {
     if (len > 16) len = 16;
     
     memcpy(msg.payload.Raw, data, len);
+    
+    xQueueSend(LogQueue, &msg, 0);
+}
+
+void Log_Heartbeat(uint8_t type, uint8_t autopilot, uint8_t status, uint8_t mode, uint32_t timestamp) {
+    LogMessage_t msg;
+    msg.LogType = LOG_TYPE_HEARTBEAT;
+    msg.ModuleID = MOD_SYS;
+    msg.Timestamp = timestamp;
+    msg.payload.Heartbeat.type = type;
+    msg.payload.Heartbeat.autopilot = autopilot;
+    msg.payload.Heartbeat.status = status;
+    msg.payload.Heartbeat.mode = mode;
     
     xQueueSend(LogQueue, &msg, 0);
 }
