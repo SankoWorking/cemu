@@ -3,8 +3,16 @@
 static TaskHandle_t attitudeTaskHandle = NULL;
 
 static void Attitude_Task(void * pvParameters) {
+    uint32_t counter = 0;
     for(;;) {
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+        
+        if (++counter >= 10) { 
+            // 假设你定义了 Log_IMU 函数
+            // 内部逻辑是拼装 LogMessage_t 并发送到 LogQueue
+            Log_Attitude(&current_attitude);
+            counter = 0;
+        }
     }
 }
 

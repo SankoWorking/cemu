@@ -49,6 +49,20 @@
 ================================================================================
 */
 
+// 建议放在 task_attitude.h 或数据类型定义头文件中
+typedef struct {
+    float roll;          // 横滚角 (rad, 范围: -pi..+pi)
+    float pitch;         // 俯仰角 (rad, 范围: -pi/2..+pi/2)
+    float yaw;           // 航向角 (rad, 范围: -pi..+pi)
+    float rollspeed;     // 横滚角速度 (rad/s)
+    float pitchspeed;    // 俯仰角速度 (rad/s)
+    float yawspeed;      // 航向角速度 (rad/s)
+    uint32_t Timestamp;  // 系统时间戳 (ms)
+} AttitudeData_t;
+
+// 声明全局变量
+extern AttitudeData_t current_attitude;
+
 //TODO 注释 IMU数据
 typedef struct {
     float acc[3];
@@ -63,7 +77,9 @@ typedef enum {
     LOG_TYPE_DATA = 0,
     LOG_TYPE_MSG  = 1,
     LOG_TYPE_RAW_HEX = 2,
-    LOG_TYPE_HEARTBEAT = 3
+    LOG_TYPE_HEARTBEAT = 3,
+    LOG_TYPE_IMU = 4,
+    LOG_TYPE_ATT = 5
 } LogType_t;
 
 //TODO 模块 ID 枚举
@@ -74,21 +90,36 @@ typedef enum {
     MOD_NAV
 } ModuleID_t;
 
+typedef struct {
+    float acc[3];
+    float gyro[3];
+} LogIMU_t;
+
+typedef struct {
+    float roll;
+    float pitch;
+    float yaw;
+    float rollspeed;
+    float pitchspeed;
+    float yawspeed;
+} LogAttitude_t;
 //TODO 注释
 typedef struct {
     LogType_t LogType;
     ModuleID_t ModuleID;
     
     union {
-        float Data[4];
-        char  Msg[16];
-        uint8_t Raw[4];
+        float Data[6];
+        char  Msg[24];
+        uint8_t Raw[24];
         struct {
             uint8_t type;
             uint8_t autopilot;
             uint8_t status;
             uint8_t mode;
         } Heartbeat;
+        LogIMU_t IMU;
+        LogAttitude_t Att;
     } payload;
     
     uint32_t Timestamp;
