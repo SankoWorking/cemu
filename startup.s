@@ -1,5 +1,5 @@
 .syntax unified
-.cpu cortex-m4
+.cpu cortex-m3
 .thumb
 
 .global _start
@@ -18,7 +18,7 @@
 .section .isr_vector, "a"
 .align 2
 _start:
-	.word 0x20008000
+	.word _estack
 	.word Reset_Handler + 1
 	.word 0
 	.word 0
@@ -34,6 +34,13 @@ _start:
 	.word 0
 	.word xPortPendSVHandler + 1
 	.word xPortSysTickHandler + 1
+	.word 0
+	.word 0
+	.word 0
+	.word 0
+	.word 0
+	.word 0
+	.word UART1_Handler + 1
 
 .section .text
 Reset_Handler:

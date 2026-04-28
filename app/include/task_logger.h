@@ -9,7 +9,8 @@
 
 void Init_Log(void);
 void Logging_Task(void *pvParameters);
-void Start_Log_Task(void);
+void Init_Log_Task(void);
 void Log_Data(ModuleID_t module, float d0, float d1, float d2, float d3);
 void Log_Msg(ModuleID_t module, const char* str);
+void Log_Raw(ModuleID_t module, const uint8_t* data, uint8_t len);
 #endif

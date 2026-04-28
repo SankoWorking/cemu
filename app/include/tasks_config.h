@@ -61,7 +61,8 @@ extern IMUData_t imu_data;
 // 消息类型枚举
 typedef enum {
     LOG_TYPE_DATA = 0,
-    LOG_TYPE_MSG  = 1
+    LOG_TYPE_MSG  = 1,
+    LOG_TYPE_RAW_HEX = 2
 } LogType_t;
 
 //TODO 模块 ID 枚举
@@ -80,6 +81,7 @@ typedef struct {
     union {
         float Data[4];
         char  Msg[16];
+        uint8_t Raw[4];
     } payload;
     
     uint32_t Timestamp;

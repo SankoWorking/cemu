@@ -2,26 +2,31 @@
 
 IMUData_t imu_data;
 static TaskHandle_t targetTaskHandle = NULL;
+QueueHandle_t SensorQueue = NULL;
 
 static void Process_Sensor_data(void){
-    imu_data.Timestamp = xTaskGetTickCount();
+
 }
 
 static void Sensor_Task(void * pvParameters) {
-
-    TickType_t lastWakeTime = xTaskGetTickCount();
-    const TickType_t taskFrequency = PERIOD_SENSOR_DATA_MS;
+    uint8_t data;
     for(;;){
-        vTaskDelayUntil(&lastWakeTime, taskFrequency);
-        Process_Sensor_data();
+        if(xQueueReceive(SensorQueue, &data, portMAX_DELAY)) {
+            do {
 
-        if (targetTaskHandle != NULL) {
-            xTaskNotifyGive(targetTaskHandle);
-        }
+                Log_Raw(MOD_SYS, &data, 1); 
+                
+            } while (xQueueReceive(SensorQueue, &data, 0));
+            if (targetTaskHandle != NULL) {
+                xTaskNotifyGive(targetTaskHandle);
+            }
+        }   
     }
 }
 
 void Init_SensorData_Task(void){
+    //TODO 修改队列的定义   初始化消息队列
+    SensorQueue = xQueueCreate(64, sizeof(uint8_t));
     xTaskCreate(Sensor_Task, "SensorTask", STACK_SENSOR_DATA, NULL, PRIO_SENSOR_DATA_TASK, NULL);
 }
 

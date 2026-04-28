@@ -33,7 +33,14 @@ void Logging_Task(void *pvParameters) {
                                Log.Timestamp,
                                ModuleNames[Log.ModuleID],
                                Log.payload.Msg);
-            }
+            }else if (Log.LogType == LOG_TYPE_RAW_HEX) {
+                len = snprintf(Buffer, sizeof(Buffer), 
+                                "[%lu] [%s] RAW: 0x%02X 0x%02X 0x%02X 0x%02X\r\n",
+                                Log.Timestamp,
+                                ModuleNames[Log.ModuleID],
+                                Log.payload.Raw[0], Log.payload.Raw[1],
+                                Log.payload.Raw[2], Log.payload.Raw[3]);
+}
 
             if (len > 0) {
                 Puts_UART(Buffer);
@@ -43,7 +50,7 @@ void Logging_Task(void *pvParameters) {
 }
 
 //TODO 注释 这里启动日志任务
-void Start_Log_Task(void) {
+void Init_Log_Task(void) {
     xTaskCreate(Logging_Task, 
                 "LogTask", 
                 STACK_LOGGING, 
@@ -51,7 +58,6 @@ void Start_Log_Task(void) {
                 PRIO_LOGGING_TASK, 
                 NULL);
 }
-
 
 
 
@@ -78,6 +84,19 @@ void Log_Msg(ModuleID_t module, const char* str) {
     
     strncpy(msg.payload.Msg, str, 15);
     msg.payload.Msg[15] = '\0';
+    
+    xQueueSend(LogQueue, &msg, 0);
+}
+
+void Log_Raw(ModuleID_t module, const uint8_t* data, uint8_t len) {
+    LogMessage_t msg;
+    msg.LogType = LOG_TYPE_RAW_HEX;
+    msg.ModuleID = module;
+    msg.Timestamp = xTaskGetTickCount();
+   
+    if (len > 16) len = 16;
+    
+    memcpy(msg.payload.Raw, data, len);
     
     xQueueSend(LogQueue, &msg, 0);
 }
