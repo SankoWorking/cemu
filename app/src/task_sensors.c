@@ -2,6 +2,7 @@
 
 IMUData_t imu_data;
 AttitudeData_t current_attitude;
+AltitudeData_t current_altitude;
 SystemStatus_t SytemStatus;
 static TaskHandle_t targetTaskHandle = NULL;
 QueueHandle_t SensorQueue = NULL;
@@ -22,7 +23,7 @@ static void Process_Sensor_data(const mavlink_message_t *msg){
             SytemStatus.system_status = hb.system_status; // 记录系统健康度
             SytemStatus.Timestamp = xTaskGetTickCount();
 
-            Log_Heartbeat(hb.type, hb.autopilot, hb.system_status, hb.base_mode, SytemStatus.Timestamp);
+            //Log_Heartbeat(hb.type, hb.autopilot, hb.system_status, hb.base_mode, SytemStatus.Timestamp);
             
             break;
         }
@@ -41,6 +42,19 @@ static void Process_Sensor_data(const mavlink_message_t *msg){
                 xTaskNotifyGive(targetTaskHandle);
             }
             
+            break;
+        }
+
+        case MAVLINK_MSG_ID_VFR_HUD: {
+            mavlink_vfr_hud_t hud;
+            mavlink_msg_vfr_hud_decode(msg, &hud);
+            
+            current_altitude.alt        = hud.alt;        // 对应 VFR_HUD 中的 alt
+            current_altitude.climb_rate = hud.climb;      // 对应 VFR_HUD 中的 climb
+            current_altitude.throttle   = (float)hud.throttle; 
+            current_altitude.Timestamp  = xTaskGetTickCount();
+            Log_Height(&current_altitude);
+
             break;
         }
         /* GAZEBO 没发送IMU原始数据

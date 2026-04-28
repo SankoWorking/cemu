@@ -69,6 +69,13 @@ void Logging_Task(void *pvParameters) {
                                 Log.payload.Att.pitchspeed);
                     break;
                 
+                case LOG_TYPE_HEIGHT:
+                    len = snprintf(Buffer, sizeof(Buffer), 
+                                "[%lu] [ALT] H:%.2f m | Vz:%.2f m/s\r\n",
+                                Log.Timestamp, 
+                                Log.payload.Height.alt, 
+                                Log.payload.Height.climb_rate);
+                    break;
                 default: break;
             }
 
@@ -172,5 +179,21 @@ void Log_Attitude(const AttitudeData_t* att) {
     msg.payload.Att.pitchspeed = att->pitchspeed;
     msg.payload.Att.yawspeed   = att->yawspeed;
 
+    xQueueSend(LogQueue, &msg, 0);
+}
+
+void Log_Height(const AltitudeData_t* alt_data) {
+    LogMessage_t msg;
+    
+    // 1. 设置元数据
+    msg.LogType = LOG_TYPE_HEIGHT;
+    msg.ModuleID = MOD_NAV;        // 建议使用导航模块 ID
+    msg.Timestamp = alt_data->Timestamp;
+
+    // 2. 填充载荷 (对应你 Logging_Task 中的 payload.Height 结构)
+    msg.payload.Height.alt = alt_data->alt;
+    msg.payload.Height.climb_rate = alt_data->climb_rate;
+    
+    // 3. 发送至队列（非阻塞方式，防止影响传感器解析或控制任务）
     xQueueSend(LogQueue, &msg, 0);
 }

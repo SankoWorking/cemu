@@ -49,6 +49,21 @@
 ================================================================================
 */
 
+typedef struct {
+    float alt;
+    float climb_rate;
+} Height_t;
+
+typedef struct {
+    float alt;           // 当前高度 (m)，通常相对于起飞点
+    float climb_rate;    // 垂直爬升速度 (m/s)
+    float throttle;      // 当前油门百分比 (0-100)，辅助分析
+    uint32_t Timestamp;  // 时间戳 (ms)
+} AltitudeData_t;
+
+// 声明全局变量
+extern AltitudeData_t current_altitude;
+
 // 建议放在 task_attitude.h 或数据类型定义头文件中
 typedef struct {
     float roll;          // 横滚角 (rad, 范围: -pi..+pi)
@@ -79,7 +94,8 @@ typedef enum {
     LOG_TYPE_RAW_HEX = 2,
     LOG_TYPE_HEARTBEAT = 3,
     LOG_TYPE_IMU = 4,
-    LOG_TYPE_ATT = 5
+    LOG_TYPE_ATT = 5,
+    LOG_TYPE_HEIGHT = 6
 } LogType_t;
 
 //TODO 模块 ID 枚举
@@ -120,6 +136,7 @@ typedef struct {
         } Heartbeat;
         LogIMU_t IMU;
         LogAttitude_t Att;
+        Height_t Height;
     } payload;
     
     uint32_t Timestamp;
