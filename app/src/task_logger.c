@@ -9,7 +9,7 @@ void Init_Log(void) {
     }
 }
 
-void Logging_Task(void *pvParameters) {
+static void Logging_Task(void *pvParameters) {
     LogMessage_t Log;
     char Buffer[128]; // 扩容：防止 IMU 6浮点数+时间戳 溢出
     const char* ModuleNames[] = {"SYS", "IMU", "PID", "NAV"};
@@ -41,12 +41,12 @@ void Logging_Task(void *pvParameters) {
                                    Log.Timestamp, ModuleNames[Log.ModuleID], Log.payload.Msg);
                     break;
 
-                case LOG_TYPE_HEARTBEAT:
+                case LOG_TYPE_UAV_STATUS:
                     len = snprintf(Buffer, sizeof(Buffer), 
-                                   "[%lu] [MAV] HB: T:%d A:%d S:%d M:%d\r\n",
+                                   "[%u] [UAV] ST: ID:%d B:%d S:%d C:%u\r\n",
                                    Log.Timestamp,
-                                   Log.payload.Heartbeat.type, Log.payload.Heartbeat.autopilot,
-                                   Log.payload.Heartbeat.status, Log.payload.Heartbeat.mode);
+                                   Log.payload.UAVStatus.SystemId, Log.payload.UAVStatus.BaseMode,
+                                   Log.payload.UAVStatus.SystemStatus, Log.payload.UAVStatus.CustomMode);
                     break;
 
                 case LOG_TYPE_RAW_HEX:
@@ -150,16 +150,26 @@ void Log_Raw(ModuleID_t module, const uint8_t* data, uint8_t len) {
     xQueueSend(LogQueue, &msg, 0);
 }
 
-void Log_Heartbeat(uint8_t type, uint8_t autopilot, uint8_t status, uint8_t mode, uint32_t timestamp) {
+/*
+ *  用与打印无人机状态日志的函数，会将无人机的状态信息塞入日志任务队列。
+ *  @param Timestamp 无人机状态更新的时间戳
+ *  @param Timestamp 当前无人机的系统ID
+ *  @param BaseMode 无人机基本模式
+ *  @param SystemStatus 无人机健康情况
+ *  @param CustomMode 无人机飞行模式
+ */
+
+void Log_UAVStatus(uint32_t Timestamp, uint8_t SystemId, uint8_t BaseMode, uint8_t SystemStatus, uint32_t CustomMode){
     LogMessage_t msg;
-    msg.LogType = LOG_TYPE_HEARTBEAT;
+    msg.LogType = LOG_TYPE_UAV_STATUS;
     msg.ModuleID = MOD_SYS;
-    msg.Timestamp = timestamp;
-    msg.payload.Heartbeat.type = type;
-    msg.payload.Heartbeat.autopilot = autopilot;
-    msg.payload.Heartbeat.status = status;
-    msg.payload.Heartbeat.mode = mode;
-    
+    msg.Timestamp = Timestamp;
+
+    msg.payload.UAVStatus.SystemId = SystemId;
+    msg.payload.UAVStatus.BaseMode = BaseMode;
+    msg.payload.UAVStatus.SystemStatus = SystemStatus;
+    msg.payload.UAVStatus.CustomMode = CustomMode;
+
     xQueueSend(LogQueue, &msg, 0);
 }
 

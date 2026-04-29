@@ -42,7 +42,7 @@ $(TARGET): $(ASM_SOURCES) $(C_SOURCES)
 
 run: $(TARGET)
 	$(QEMU) -M lm3s6965evb -kernel $(TARGET) -nographic \
-	-chardev udp,id=con0,port=0,localaddr=127.0.0.1,localport=14550 \
+	-chardev udp,id=con0,port=0,localaddr=127.0.0.1,localport=14540 \
 	-serial mon:stdio \
 	-serial chardev:con0
 clean:

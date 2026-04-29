@@ -3,28 +3,24 @@
 IMUData_t imu_data;
 AttitudeData_t current_attitude;
 AltitudeData_t current_altitude;
-SystemStatus_t SytemStatus;
+UAVStatus_t UAVStatus;
 static TaskHandle_t targetTaskHandle = NULL;
 QueueHandle_t SensorQueue = NULL;
 
 static void Process_Sensor_data(const mavlink_message_t *msg){
     switch (msg->msgid) {
         case MAVLINK_MSG_ID_HEARTBEAT: {
-            // 1. 定义解析用的结构体
             mavlink_heartbeat_t hb;
-            
-            // 2. 解码：将原始消息解析到结构体中
+
             mavlink_msg_heartbeat_decode(msg, &hb);
             
-            // 3. 执行业务逻辑
-            SytemStatus.is_connected = 1;
-            SytemStatus.remote_system_id = msg->sysid; // 记录对方的 ID
-            SytemStatus.base_mode = hb.base_mode;      // 记录飞行模式（是否解锁等）
-            SytemStatus.system_status = hb.system_status; // 记录系统健康度
-            SytemStatus.Timestamp = xTaskGetTickCount();
-
-            //Log_Heartbeat(hb.type, hb.autopilot, hb.system_status, hb.base_mode, SytemStatus.Timestamp);
+            UAVStatus.Timestamp = xTaskGetTickCount();
+            UAVStatus.SystemId = msg->sysid;
+            UAVStatus.BaseMode = hb.base_mode;
+            UAVStatus.SystemStatus = hb.system_status;
+            UAVStatus.CustomMode = hb.custom_mode;
             
+            Log_UAVStatus(UAVStatus.Timestamp, UAVStatus.SystemId, UAVStatus.BaseMode, UAVStatus.SystemStatus, UAVStatus.CustomMode);
             break;
         }
         case MAVLINK_MSG_ID_ATTITUDE: {
@@ -53,7 +49,8 @@ static void Process_Sensor_data(const mavlink_message_t *msg){
             current_altitude.climb_rate = hud.climb;      // 对应 VFR_HUD 中的 climb
             current_altitude.throttle   = (float)hud.throttle; 
             current_altitude.Timestamp  = xTaskGetTickCount();
-            Log_Height(&current_altitude);
+            
+            //Log_Height(&current_altitude);
 
             break;
         }

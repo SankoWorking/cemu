@@ -8,9 +8,8 @@ static void Attitude_Task(void * pvParameters) {
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
         
         if (++counter >= 10) { 
-            // 假设你定义了 Log_IMU 函数
-            // 内部逻辑是拼装 LogMessage_t 并发送到 LogQueue
-            Log_Attitude(&current_attitude);
+            
+            //Log_Attitude(&current_attitude);
             counter = 0;
         }
     }

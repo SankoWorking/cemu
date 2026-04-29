@@ -49,6 +49,39 @@
 ================================================================================
 */
 
+/*
+ *  存放无人机状态的全局结构体。收到心跳包后会将无人机状态信息更新到此处。
+ *
+ *  Timestamp   ->  接收到消息包的系统时间
+ *  SystemID    ->  发送方的系统ID
+ *  BaseMode    ->  无人机基本模式
+ *  SystemStatus->  无人机健康状况
+ *  CustomMode  ->  飞行模式
+ */
+typedef struct {
+    uint32_t Timestamp;
+    uint8_t SystemId;
+    uint8_t BaseMode;
+    uint8_t SystemStatus;
+    uint32_t CustomMode;
+} UAVStatus_t;
+extern UAVStatus_t UAVStatus;
+
+/*
+ *  无人机状态日志结构体，会被用于无人机日志结构体的载荷联合体部分。是无人机状态结构体去掉时间戳的版本。
+ *
+ *  SystemID    ->  发送方的系统ID
+ *  BaseMode    ->  无人机基本模式
+ *  SystemStatus->  无人机健康状况
+ *  CustomMode  ->  飞行模式
+ */
+typedef struct {
+    uint8_t SystemId;
+    uint8_t BaseMode;
+    uint8_t SystemStatus;
+    uint32_t CustomMode;
+} LogUAVStatus_t;
+
 typedef struct {
     float alt;
     float climb_rate;
@@ -92,7 +125,7 @@ typedef enum {
     LOG_TYPE_DATA = 0,
     LOG_TYPE_MSG  = 1,
     LOG_TYPE_RAW_HEX = 2,
-    LOG_TYPE_HEARTBEAT = 3,
+    LOG_TYPE_UAV_STATUS = 3,
     LOG_TYPE_IMU = 4,
     LOG_TYPE_ATT = 5,
     LOG_TYPE_HEIGHT = 6
@@ -119,6 +152,7 @@ typedef struct {
     float pitchspeed;
     float yawspeed;
 } LogAttitude_t;
+
 //TODO 注释
 typedef struct {
     LogType_t LogType;
@@ -128,12 +162,7 @@ typedef struct {
         float Data[6];
         char  Msg[24];
         uint8_t Raw[24];
-        struct {
-            uint8_t type;
-            uint8_t autopilot;
-            uint8_t status;
-            uint8_t mode;
-        } Heartbeat;
+        LogUAVStatus_t UAVStatus;
         LogIMU_t IMU;
         LogAttitude_t Att;
         Height_t Height;
@@ -142,15 +171,6 @@ typedef struct {
     uint32_t Timestamp;
 } LogMessage_t;
 
-// 存放心跳包的结构体
-typedef struct {
-    uint8_t remote_system_id;
-    uint8_t is_connected;
-    uint32_t last_heartbeat_ms;
-    uint8_t base_mode;
-    uint8_t system_status;
-    uint32_t Timestamp;
-} SystemStatus_t;
-extern SystemStatus_t SytemStatus;
+
 
 #endif /* #ifndef __TASKS_CONFIG_H__ */
