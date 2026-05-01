@@ -1,39 +1,45 @@
 #include "uart.h"
 
-StreamBufferHandle_t Uart1RxStreamBuffer;
+StreamBufferHandle_t Uart1RxStreamBuffer = NULL;
+SemaphoreHandle_t Uart0TxSem = NULL;
 
-//TODO* 需要调整为信号量加中断的设计，这里只是配置了一下休眠。
-void Putc_UART(char c) {
-	while ( UART0_FR_R & (1 << 5) ){
-		vTaskDelay(1);
-	};
-	UART0_DR_R = c;
+/*
+ *  UART0的串口打印函数。会将c写入UART0的数据寄存器，当FIFO满时，会阻塞等待标志TX FIFO空阈值的二值信号量。
+ *  @param c 待打印的字节
+ */
+static void Putc_UART0(char c) {
+	while (UART0_FR_R & (1 << 5)) {
+        xSemaphoreTake(Uart0TxSem, portMAX_DELAY);
+    }
+    UART0_DR_R = c;
 }
 
-//TODO 注释
-void Puts_UART(const char *s) {
+void Puts_UART0(const char *s) {
 	while (*s) {
-		Putc_UART(*s++);
+		Putc_UART0(*s++);
 	}
 }
 
-//TODO 注释 初始化了串口的中断。
 void Init_UART1_Interrupt(void) {
     Uart1RxStreamBuffer = xStreamBufferCreate(UART1_RX_STREAM_BUFFER_SIZE, UART1_RX_TRIGGER_LEVEL);
-    *(volatile uint32_t *)0x400FE104 |= (1 << 1); // RCGC1 UART
-    *(volatile uint32_t *)0x400FE108 |= (1 << 3); // RCGC2 GPIO D (UART1引脚)
+    
+    //开启UART1和GPIOD的外设时钟
+    UART1_RCC_R |= (1 << 1);
+    UART1_RCC_GPIOD_R |= (1 << 3);
 
-    *(volatile uint32_t *)0x4000751C |= (1 << 2) | (1 << 3); // GPIOD_DEN_R
+    //启用GPIOD的数字功能
+    UART1_GPIOD_DEN_R |= (1 << 2) | (1 << 3);
 
-    // 2. 开启 GPIO D 的复用功能 (Alternate Function Select)
-    *(volatile uint32_t *)0x40007420 |= (1 << 2) | (1 << 3); // GPIOD_AFSEL_R
+    //配置GPIOD的引脚复用，使其受UART1控制
+    UART1_GPIOD_AFSEL_R |= (1 << 2) | (1 << 3);
 
-    // 2. 配置 UART1 参数 (必须配置，否则 QEMU 可能不转发数据)
-    UART1_CTL_R &= ~0x01; 
+    //配置UART1
+    UART1_CTL_R &= ~0x01U; 
     UART1_IBRD_R = 10; 
     UART1_FBRD_R = 54;
-    UART1_LCRH_R = (0x3 << 5) | (1 << 4); // 8-N-1, Enable FIFO
-	//将IFLS_R清零，并设置[5:3]区间和[2:0]区间，将FIFO阈值设置为1/2（RX）和1/8（TX）
+    UART1_LCRH_R = (0x3 << 5) | (1 << 4);
+	
+    //设置RXFIFO和TXFIFO的阈值，将FIFO阈值设置为1/2（RX）和1/8（TX）
     UART1_IFLS_R &= ~0x3FU;
     UART1_IFLS_R |= (0x2U << 3) | (0x0U << 0);
 
@@ -42,15 +48,74 @@ void Init_UART1_Interrupt(void) {
 
 	//设置串口中断的优先级为5,处于freeRTOS的可控范围内，可以调用fromISR结尾的freeRTOS API
     NVIC_PRI1_R = (NVIC_PRI1_R & ~(7U << 21)) | (5U << 21);
-    
 	//使能串口中断
-    NVIC_EN0_R = (1U << 6); 
+    NVIC_EN0_R  |= (1U << 6); 
+
+    //使能串口
     UART1_CTL_R |= (1 << 0) | (1 << 8) | (1 << 9);
 }
 
-void UART1_Handler(void) {
-    uint32_t status = *(volatile uint32_t *)(UART1_BASE + 0x040);
+void Init_UART0_Interrupt(void) {
+    Uart0TxSem = xSemaphoreCreateBinary();
+    xSemaphoreGive(Uart0TxSem);
+
+    //开启UART0和GPIOA的外设时钟
+    UART0_RCC_R |= (1 << 0);
+    UART0_RCC_GPIOA_R |= (1 << 0);
+
+    //启用GPIOA的数字功能
+    UART0_GPIOA_DEN_R |= (1 << 0) | (1 << 1);
+
+    //配置GPIOD的引脚复用，使其受UART1控制
+    UART0_GPIOA_AFSEL_R |= (1 << 0) | (1 << 1);
+
+    //禁用UART0后配置波特率及传输格式
+    UART0_CTL_R &= ~0x01U; 
+    UART0_IBRD_R = 10; 
+    UART0_FBRD_R = 54;
+    UART0_LCRH_R = (0x3 << 5) | (1 << 4);
     
+    // 将 TX FIFO 阈值设置为 1/8 (即剩余空间较多时触发中断，方便连续填充)
+    UART0_IFLS_R &= ~0x3FU;
+    UART0_IFLS_R |= (0x0U << 0); 
+
+    // 仅开启发送 FIFO 低于阈值中断 (TXIM)
+    UART0_IM_R = (1U << 5); 
+
+    //配置UART0串口中断优先级，将其配置为6,低于UART1的优先级，因为此串口只负责打印数据到终端。
+    NVIC_PRI1_R = (NVIC_PRI1_R & ~(7U << 13)) | (6U << 13);
+    
+    //使能串口中断
+    NVIC_EN0_R |= (1U << 5); 
+
+    //使能串口
+    UART0_CTL_R |= (1 << 0) | (1 << 8);
+}
+
+/*
+ * UART0的中断服务函数。当UART0的TX FIFO低于阈值时会触发中断，在此服务函数中会释放二值信号量。
+ */
+void UART0_Handler(void) {
+    //从UART1对应的MIS中读取屏蔽后的中断状态
+    uint32_t status = UART0_MIS_R;
+    
+    //清除中断标志位
+    UART0_IC_R = status;
+    //判断是否为发送中断
+    if (status & (1 << 5)) {
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        xSemaphoreGiveFromISR(Uart0TxSem, &xHigherPriorityTaskWoken);
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    }
+}
+
+/*
+ * UART1的中断服务函数。
+ * 当RX FIFO达阈值时会触发中断，在中断中将收到的字节流放入StreamBuffer
+ */
+void UART1_Handler(void) {
+    //从UART1对应的MIS中读取屏蔽后的中断状态
+    uint32_t status = UART1_MIS_R;
     uint8_t TempDataArr[16];
     uint8_t Count = 0;
     

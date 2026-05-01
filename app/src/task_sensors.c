@@ -18,7 +18,7 @@ static void Process_Sensor_data(const mavlink_message_t *Msg){
             UAVStatus.SystemStatus = Heartbeat.system_status;
             UAVStatus.CustomMode = Heartbeat.custom_mode;
             
-            //Log_UAVStatus(UAVStatus.Timestamp, UAVStatus.SystemId, UAVStatus.BaseMode, UAVStatus.SystemStatus, UAVStatus.CustomMode);
+            Log_UAVStatus(UAVStatus.Timestamp, UAVStatus.SystemId, UAVStatus.BaseMode, UAVStatus.SystemStatus, UAVStatus.CustomMode);
             break;
         }
         case MAVLINK_MSG_ID_ATTITUDE: {
@@ -45,7 +45,7 @@ static void Process_Sensor_data(const mavlink_message_t *Msg){
             CurrentAltitude.Alttitude = hud.alt;
             CurrentAltitude.ClimbRate = hud.climb;
             CurrentAltitude.Timestamp = xTaskGetTickCount();
-            //Log_Altitude(CurrentAltitude.Timestamp, CurrentAltitude.Alttitude, CurrentAltitude.ClimbRate);
+            Log_Altitude(CurrentAltitude.Timestamp, CurrentAltitude.Alttitude, CurrentAltitude.ClimbRate);
             break;
         }
         default:

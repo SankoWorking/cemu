@@ -135,7 +135,7 @@ static void Logging_Task(void *pvParameters) {
             }
 
             if (Len > 0) {
-                Puts_UART(Buffer);
+                Puts_UART0(Buffer);
             }
         }
     }

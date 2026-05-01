@@ -39,7 +39,7 @@ _start:
 	.word 0
 	.word 0
 	.word 0
-	.word 0
+	.word UART0_Handler + 1
 	.word UART1_Handler + 1
 
 .section .text
