@@ -8,8 +8,6 @@ static void Attitude_Task(void * pvParameters) {
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
         
         if (++counter >= 10) { 
-            
-            //Log_Attitude(&current_attitude);
             counter = 0;
         }
     }

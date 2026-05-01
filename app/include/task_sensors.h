@@ -5,10 +5,9 @@
 #include "queue.h"
 #include <common/mavlink.h>
 #include "task_logger.h"
-
-extern QueueHandle_t SensorQueue;
+#include "stream_buffer.h"
 
 void Set_Target_Task_Handle(TaskHandle_t taskHandle);
-void Init_SensorData_Task(void);
+void Init_SensorData_Task(void *Parameters);
 
 #endif /*#ifndef __TASK_SENSORS_H__*/

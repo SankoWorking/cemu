@@ -2,91 +2,145 @@
 
 static QueueHandle_t LogQueue = NULL;
 
-//TODO 注释 这里先初始化日志队列，确保其他模块初始化时日志队列已经存在
-void Init_Log(void) {
+void Init_Log_Queue(void) {
     if (LogQueue == NULL) {
         LogQueue = xQueueCreate(50, sizeof(LogMessage_t));
     }
 }
 
+/*
+ *  格式化数据日志的内联函数，会被用于日志任务中，目的是增强代码易读性。
+ *  
+ *  @param Buffer 存放格式化后日志的缓冲区
+ *  @param Size 缓冲区的大小
+ *  @param Log  待格式化的日志消息
+ *  @return 格式化后的字符串长度
+ */
+static inline int Format_Data_Log(char *Buffer, size_t Size, const LogMessage_t *Log) {
+    return snprintf(Buffer, Size, "%.3f", Log->Payload.Data);
+}
+
+/*
+ *  格式化纯文本日志的内联函数，会被用于日志任务中，目的是增强代码易读性。
+ *  
+ *  @param Buffer 存放格式化后日志的缓冲区
+ *  @param Size 缓冲区的大小
+ *  @param Log  待格式化的日志消息
+ *  @return 格式化后的字符串长度
+ */
+static inline int Format_MSG_Log(char *Buffer, size_t Size, const LogMessage_t *Log) {
+    return snprintf(Buffer, Size, "[%lu] [MSG]: %s\r\n",
+                    Log->Timestamp, 
+                    Log->Payload.Msg);
+}
+
+/*
+ *  格式化无人机状态日志的内联函数，会被用于日志任务中，目的是增强代码易读性。
+ *  
+ *  @param Buffer 存放格式化后日志的缓冲区
+ *  @param Size 缓冲区的大小
+ *  @param Log  待格式化的日志消息
+ *  @return 格式化后的字符串长度
+ */
+static inline int Format_UAV_Status_Log(char *Buffer, size_t Size, const LogMessage_t *Log) {
+    return snprintf(Buffer, Size, "[%u] [UAV] ST: ID:%d B:%d S:%d C:%u\r\n",
+                    (unsigned int)Log->Timestamp,
+                    Log->Payload.UAVStatus.SystemId, 
+                    Log->Payload.UAVStatus.BaseMode,
+                    Log->Payload.UAVStatus.SystemStatus, 
+                    Log->Payload.UAVStatus.CustomMode);
+}
+
+/*
+ *  格式化字节流日志的内联函数，会被用于日志任务中，目的是增强代码易读性。
+ *  
+ *  @param Buffer 存放格式化后日志的缓冲区
+ *  @param Size 缓冲区的大小
+ *  @param Log  待格式化的日志消息
+ *  @return 格式化后的字符串长度
+ */
+static inline int Format_Raw_Hex_Log(char *Buffer, size_t Size, const LogMessage_t *Log) {
+    return snprintf(Buffer, Size, "[%lu] [RAW]: %02X %02X %02X %02X...\r\n",
+                    Log->Timestamp,
+                    Log->Payload.Raw[0], 
+                    Log->Payload.Raw[1],
+                    Log->Payload.Raw[2], 
+                    Log->Payload.Raw[3]);
+}
+
+/*
+ *  格式化无人机姿态日志的内联函数，会被用于日志任务中，目的是增强代码易读性。
+ *  
+ *  @param Buffer 存放格式化后日志的缓冲区
+ *  @param Size 缓冲区的大小
+ *  @param Log  待格式化的日志消息
+ *  @return 格式化后的字符串长度
+ */
+static inline int Format_ATT_Log(char *Buffer, size_t Size, const LogMessage_t *Log) {
+    return snprintf(Buffer, Size, "[%lu] [ATT] R:%.1f, P:%.1f, Y:%.1f\r\n",
+                    Log->Timestamp,
+                    Log->Payload.Att.Roll,
+                    Log->Payload.Att.Pitch,
+                    Log->Payload.Att.Yaw);
+}
+
+/*
+ *  格式化无人机海拔日志的内联函数，会被用于日志任务中，目的是增强代码易读性。
+ *  
+ *  @param Buffer 存放格式化后日志的缓冲区
+ *  @param Size 缓冲区的大小
+ *  @param Log  待格式化的日志消息
+ *  @return 格式化后的字符串长度
+ */
+static inline int Format_ALT_Log(char *Buffer, size_t Size, const LogMessage_t *Log) {
+    return snprintf(Buffer, Size, "[%lu] [ALT] H:%.2f m | Vz:%.2f m/s\r\n",
+                    Log->Timestamp, 
+                    Log->Payload.Alt.Alttitude, 
+                    Log->Payload.Alt.ClimbRate);
+}
+
+/*
+ *  日志任务的任务函数，也是最终调用UART0串口发送日志到终端的函数，参数未使用。
+ */
 static void Logging_Task(void *pvParameters) {
     LogMessage_t Log;
-    char Buffer[128]; // 扩容：防止 IMU 6浮点数+时间戳 溢出
+    char Buffer[128];
     const char* ModuleNames[] = {"SYS", "IMU", "PID", "NAV"};
 
     for (;;) {
         if (xQueueReceive(LogQueue, &Log, portMAX_DELAY) == pdPASS) {
-            int len = 0;
+            int Len = 0;
             
             switch (Log.LogType) {
                 case LOG_TYPE_DATA:
-                    len = snprintf(Buffer, sizeof(Buffer), 
-                                   "[%lu] [%s] DATA: %.3f, %.3f, %.3f, %.3f\r\n",
-                                   Log.Timestamp, ModuleNames[Log.ModuleID],
-                                   Log.payload.Data[0], Log.payload.Data[1],
-                                   Log.payload.Data[2], Log.payload.Data[3]);
+                    Len = Format_Data_Log(Buffer, sizeof(Buffer), &Log);
                     break;
-
-                case LOG_TYPE_IMU:
-                    len = snprintf(Buffer, sizeof(Buffer), 
-                                   "[%lu] [IMU] A:%.2f,%.2f,%.2f G:%.3f,%.3f,%.3f\r\n",
-                                   Log.Timestamp,
-                                   Log.payload.IMU.acc[0], Log.payload.IMU.acc[1], Log.payload.IMU.acc[2],
-                                   Log.payload.IMU.gyro[0], Log.payload.IMU.gyro[1], Log.payload.IMU.gyro[2]);
-                    break;
-
                 case LOG_TYPE_MSG:
-                    len = snprintf(Buffer, sizeof(Buffer), 
-                                   "[%lu] [%s] MSG: %s\r\n",
-                                   Log.Timestamp, ModuleNames[Log.ModuleID], Log.payload.Msg);
+                    Len = Format_MSG_Log(Buffer, sizeof(Buffer), &Log);
                     break;
-
-                case LOG_TYPE_UAV_STATUS:
-                    len = snprintf(Buffer, sizeof(Buffer), 
-                                   "[%u] [UAV] ST: ID:%d B:%d S:%d C:%u\r\n",
-                                   Log.Timestamp,
-                                   Log.payload.UAVStatus.SystemId, Log.payload.UAVStatus.BaseMode,
-                                   Log.payload.UAVStatus.SystemStatus, Log.payload.UAVStatus.CustomMode);
-                    break;
-
                 case LOG_TYPE_RAW_HEX:
-                    len = snprintf(Buffer, sizeof(Buffer), 
-                                   "[%lu] [%s] RAW: %02X %02X %02X %02X...\r\n",
-                                   Log.Timestamp, ModuleNames[Log.ModuleID],
-                                   Log.payload.Raw[0], Log.payload.Raw[1],
-                                   Log.payload.Raw[2], Log.payload.Raw[3]);
+                    Len = Format_Raw_Hex_Log(Buffer, sizeof(Buffer), &Log);
                     break;
-
+                case LOG_TYPE_UAV_STATUS:
+                    Len = Format_UAV_Status_Log(Buffer, sizeof(Buffer), &Log);
+                    break;
                 case LOG_TYPE_ATT:
-                    // 打印格式：[时间戳] [ATT] R:横滚 P:俯仰 Y:航向 (单位: 度)
-                    len = snprintf(Buffer, sizeof(Buffer), 
-                                "[%lu] [ATT] R:%.1f, P:%.1f, Y:%.1f | vR:%.2f, vP:%.2f\r\n",
-                                Log.Timestamp,
-                                Log.payload.Att.roll,
-                                Log.payload.Att.pitch,
-                                Log.payload.Att.yaw,
-                                Log.payload.Att.rollspeed,
-                                Log.payload.Att.pitchspeed);
+                    Len = Format_ATT_Log(Buffer, sizeof(Buffer), &Log);
                     break;
-                
-                case LOG_TYPE_HEIGHT:
-                    len = snprintf(Buffer, sizeof(Buffer), 
-                                "[%lu] [ALT] H:%.2f m | Vz:%.2f m/s\r\n",
-                                Log.Timestamp, 
-                                Log.payload.Height.alt, 
-                                Log.payload.Height.climb_rate);
+                case LOG_TYPE_ALT:
+                    Len = Format_ALT_Log(Buffer, sizeof(Buffer), &Log);
                     break;
-                default: break;
+                default: 
+                    break;
             }
 
-            if (len > 0) {
+            if (Len > 0) {
                 Puts_UART(Buffer);
             }
         }
     }
 }
 
-//TODO 注释 这里启动日志任务
 void Init_Log_Task(void) {
     xTaskCreate(Logging_Task, 
                 "LogTask", 
@@ -96,114 +150,58 @@ void Init_Log_Task(void) {
                 NULL);
 }
 
-void Log_IMU(const float* acc, const float* gyro, uint32_t timestamp) {
-    LogMessage_t msg;
-    msg.LogType = LOG_TYPE_IMU;
-    msg.ModuleID = MOD_IMU;
-    msg.Timestamp = timestamp;
-    
-    // 拷贝 3轴加速度和 3轴陀螺仪
-    memcpy(msg.payload.IMU.acc, acc, sizeof(float) * 3);
-    memcpy(msg.payload.IMU.gyro, gyro, sizeof(float) * 3);
-    
-    // 必须 0 等待，防止卡住算法任务
-    xQueueSend(LogQueue, &msg, 0);
+void Log_Data(float Float) {
+    LogMessage_t Msg;
+    Msg.LogType = LOG_TYPE_DATA;
+    Msg.Timestamp = xTaskGetTickCount();
+    Msg.Payload.Data = Float;
+    xQueueSend(LogQueue, &Msg, 0);
 }
 
-//TODO 注释 发送数值日志
-void Log_Data(ModuleID_t module, float d0, float d1, float d2, float d3) {
-    LogMessage_t msg;
-    msg.LogType = LOG_TYPE_DATA;
-    msg.ModuleID = module;
-    msg.Timestamp = xTaskGetTickCount();
-    msg.payload.Data[0] = d0;
-    msg.payload.Data[1] = d1;
-    msg.payload.Data[2] = d2;
-    msg.payload.Data[3] = d3;
-    
-    xQueueSend(LogQueue, &msg, 0);
+void Log_Msg(const char* Str) {
+    LogMessage_t Msg;
+    Msg.LogType = LOG_TYPE_MSG;
+    Msg.Timestamp = xTaskGetTickCount();
+    strncpy(Msg.Payload.Msg, Str, MAX_MSG_LENGTH-1);
+    Msg.Payload.Msg[MAX_MSG_LENGTH-1] = '\0';
+    xQueueSend(LogQueue, &Msg, 0);
 }
 
-//TODO 注释 发送文本日志
-void Log_Msg(ModuleID_t module, const char* str) {
-    LogMessage_t msg;
-    msg.LogType = LOG_TYPE_MSG;
-    msg.ModuleID = module;
-    msg.Timestamp = xTaskGetTickCount();
-    
-    strncpy(msg.payload.Msg, str, 15);
-    msg.payload.Msg[15] = '\0';
-    
-    xQueueSend(LogQueue, &msg, 0);
+void Log_Raw(const uint8_t* Byte, uint8_t Len) {
+    LogMessage_t Msg;
+    Msg.LogType = LOG_TYPE_RAW_HEX;
+    Msg.Timestamp = xTaskGetTickCount();
+    if (Len > MAX_RAW_LENGTH) Len = MAX_RAW_LENGTH;
+    memcpy(Msg.Payload.Raw, Byte, Len);
+    xQueueSend(LogQueue, &Msg, 0);
 }
 
-void Log_Raw(ModuleID_t module, const uint8_t* data, uint8_t len) {
-    LogMessage_t msg;
-    msg.LogType = LOG_TYPE_RAW_HEX;
-    msg.ModuleID = module;
-    msg.Timestamp = xTaskGetTickCount();
-   
-    if (len > 16) len = 16;
-    
-    memcpy(msg.payload.Raw, data, len);
-    
-    xQueueSend(LogQueue, &msg, 0);
+void Log_Attitude(uint32_t Timestamp, float Roll, float Pitch, float Yaw) {
+    LogMessage_t Msg;
+    Msg.LogType = LOG_TYPE_ATT;
+    Msg.Timestamp = Timestamp;
+    Msg.Payload.Att.Roll  = Roll  * RAD_TO_DEG;
+    Msg.Payload.Att.Pitch = Pitch * RAD_TO_DEG;
+    Msg.Payload.Att.Yaw   = Yaw   * RAD_TO_DEG;
+    xQueueSend(LogQueue, &Msg, 0);
 }
 
-/*
- *  用与打印无人机状态日志的函数，会将无人机的状态信息塞入日志任务队列。
- *  @param Timestamp 无人机状态更新的时间戳
- *  @param Timestamp 当前无人机的系统ID
- *  @param BaseMode 无人机基本模式
- *  @param SystemStatus 无人机健康情况
- *  @param CustomMode 无人机飞行模式
- */
+void Log_Altitude(uint32_t Timestamp, float Alttitude, float ClimbRate) {
+    LogMessage_t Msg;
+    Msg.LogType = LOG_TYPE_ALT;
+    Msg.Timestamp = Timestamp;
+    Msg.Payload.Alt.Alttitude = Alttitude;
+    Msg.Payload.Alt.ClimbRate = ClimbRate;
+    xQueueSend(LogQueue, &Msg, 0);
+}
 
 void Log_UAVStatus(uint32_t Timestamp, uint8_t SystemId, uint8_t BaseMode, uint8_t SystemStatus, uint32_t CustomMode){
-    LogMessage_t msg;
-    msg.LogType = LOG_TYPE_UAV_STATUS;
-    msg.ModuleID = MOD_SYS;
-    msg.Timestamp = Timestamp;
-
-    msg.payload.UAVStatus.SystemId = SystemId;
-    msg.payload.UAVStatus.BaseMode = BaseMode;
-    msg.payload.UAVStatus.SystemStatus = SystemStatus;
-    msg.payload.UAVStatus.CustomMode = CustomMode;
-
-    xQueueSend(LogQueue, &msg, 0);
-}
-
-void Log_Attitude(const AttitudeData_t* att) {
-    LogMessage_t msg;
-    msg.LogType = LOG_TYPE_ATT; // 需在枚举中定义 LOG_TYPE_ATT
-    msg.ModuleID = MOD_SYS;     // 或者你定义的 MOD_NAV
-    msg.Timestamp = att->Timestamp;
-
-    // 转换为角度存储，方便串口直接查看数值
-    msg.payload.Att.roll  = att->roll  * RAD_TO_DEG;
-    msg.payload.Att.pitch = att->pitch * RAD_TO_DEG;
-    msg.payload.Att.yaw   = att->yaw   * RAD_TO_DEG;
-    
-    // 角速度通常保留弧度/秒即可
-    msg.payload.Att.rollspeed  = att->rollspeed;
-    msg.payload.Att.pitchspeed = att->pitchspeed;
-    msg.payload.Att.yawspeed   = att->yawspeed;
-
-    xQueueSend(LogQueue, &msg, 0);
-}
-
-void Log_Height(const AltitudeData_t* alt_data) {
-    LogMessage_t msg;
-    
-    // 1. 设置元数据
-    msg.LogType = LOG_TYPE_HEIGHT;
-    msg.ModuleID = MOD_NAV;        // 建议使用导航模块 ID
-    msg.Timestamp = alt_data->Timestamp;
-
-    // 2. 填充载荷 (对应你 Logging_Task 中的 payload.Height 结构)
-    msg.payload.Height.alt = alt_data->alt;
-    msg.payload.Height.climb_rate = alt_data->climb_rate;
-    
-    // 3. 发送至队列（非阻塞方式，防止影响传感器解析或控制任务）
-    xQueueSend(LogQueue, &msg, 0);
+    LogMessage_t Msg;
+    Msg.LogType = LOG_TYPE_UAV_STATUS;
+    Msg.Timestamp = Timestamp;
+    Msg.Payload.UAVStatus.SystemId = SystemId;
+    Msg.Payload.UAVStatus.BaseMode = BaseMode;
+    Msg.Payload.UAVStatus.SystemStatus = SystemStatus;
+    Msg.Payload.UAVStatus.CustomMode = CustomMode;
+    xQueueSend(LogQueue, &Msg, 0);
 }

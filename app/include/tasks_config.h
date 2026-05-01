@@ -45,12 +45,12 @@
 
 /*
 ================================================================================
-                            任务间共享数据结构
+                            任务全局数据结构
 ================================================================================
 */
 
 /*
- *  存放无人机状态的全局结构体。收到心跳包后会将无人机状态信息更新到此处。
+ *  存放无人机状态的全局结构体，收到心跳包后会将无人机状态信息更新到此处。
  *
  *  Timestamp   ->  接收到消息包的系统时间
  *  SystemID    ->  发送方的系统ID
@@ -68,109 +68,39 @@ typedef struct {
 extern UAVStatus_t UAVStatus;
 
 /*
- *  无人机状态日志结构体，会被用于无人机日志结构体的载荷联合体部分。是无人机状态结构体去掉时间戳的版本。
- *
- *  SystemID    ->  发送方的系统ID
- *  BaseMode    ->  无人机基本模式
- *  SystemStatus->  无人机健康状况
- *  CustomMode  ->  飞行模式
+ *  无人机海拔结全局构体，收到海拔消息包会将最新的海拔信息更新到此处。
+ *   
+ *  Timestamp   ->  接收到消息包的系统时间
+ *  Alttitude   ->  无人机当前海拔
+ *  ClimbRate   ->  无人机爬升速率
  */
 typedef struct {
-    uint8_t SystemId;
-    uint8_t BaseMode;
-    uint8_t SystemStatus;
-    uint32_t CustomMode;
-} LogUAVStatus_t;
-
-typedef struct {
-    float alt;
-    float climb_rate;
-} Height_t;
-
-typedef struct {
-    float alt;           // 当前高度 (m)，通常相对于起飞点
-    float climb_rate;    // 垂直爬升速度 (m/s)
-    float throttle;      // 当前油门百分比 (0-100)，辅助分析
-    uint32_t Timestamp;  // 时间戳 (ms)
+    float Alttitude;
+    float ClimbRate;
+    uint32_t Timestamp;
 } AltitudeData_t;
+extern AltitudeData_t CurrentAltitude;
 
-// 声明全局变量
-extern AltitudeData_t current_altitude;
-
-// 建议放在 task_attitude.h 或数据类型定义头文件中
+/*
+ *  无人机姿态全局结构体，收到姿态数据包后会更新此全局结构体。
+ *
+ *  Timestamp   ->  接收到消息包的系统时间
+ *  Roll        ->  横滚角 (rad, 范围: -pi..+pi)
+ *  Pitch       ->  俯仰角 (rad, 范围: -pi/2..+pi/2)
+ *  Yaw         ->  航向角 (rad, 范围: -pi..+pi)
+ *  RollSpeed   ->  横滚角速度 (rad/s)
+ *  PitchSpeed  ->  俯仰角速度 (rad/s)
+ *  YawSpeed    ->  航向角速度 (rad/s)
+ */
 typedef struct {
-    float roll;          // 横滚角 (rad, 范围: -pi..+pi)
-    float pitch;         // 俯仰角 (rad, 范围: -pi/2..+pi/2)
-    float yaw;           // 航向角 (rad, 范围: -pi..+pi)
-    float rollspeed;     // 横滚角速度 (rad/s)
-    float pitchspeed;    // 俯仰角速度 (rad/s)
-    float yawspeed;      // 航向角速度 (rad/s)
-    uint32_t Timestamp;  // 系统时间戳 (ms)
+    float Roll;
+    float Pitch;
+    float Yaw;
+    float RollSpeed;
+    float PitchSpeed;
+    float YawSpeed;
+    uint32_t Timestamp;
 } AttitudeData_t;
-
-// 声明全局变量
-extern AttitudeData_t current_attitude;
-
-//TODO 注释 IMU数据
-typedef struct {
-    float acc[3];
-    float gyro[3];
-    uint32_t Timestamp;
-} IMUData_t;
-extern IMUData_t imu_data;
-
-//TODO 注释
-// 消息类型枚举
-typedef enum {
-    LOG_TYPE_DATA = 0,
-    LOG_TYPE_MSG  = 1,
-    LOG_TYPE_RAW_HEX = 2,
-    LOG_TYPE_UAV_STATUS = 3,
-    LOG_TYPE_IMU = 4,
-    LOG_TYPE_ATT = 5,
-    LOG_TYPE_HEIGHT = 6
-} LogType_t;
-
-//TODO 模块 ID 枚举
-typedef enum {
-    MOD_SYS = 0,
-    MOD_IMU,
-    MOD_PID,
-    MOD_NAV
-} ModuleID_t;
-
-typedef struct {
-    float acc[3];
-    float gyro[3];
-} LogIMU_t;
-
-typedef struct {
-    float roll;
-    float pitch;
-    float yaw;
-    float rollspeed;
-    float pitchspeed;
-    float yawspeed;
-} LogAttitude_t;
-
-//TODO 注释
-typedef struct {
-    LogType_t LogType;
-    ModuleID_t ModuleID;
-    
-    union {
-        float Data[6];
-        char  Msg[24];
-        uint8_t Raw[24];
-        LogUAVStatus_t UAVStatus;
-        LogIMU_t IMU;
-        LogAttitude_t Att;
-        Height_t Height;
-    } payload;
-    
-    uint32_t Timestamp;
-} LogMessage_t;
-
-
+extern AttitudeData_t CurrtentAttitude;
 
 #endif /* #ifndef __TASKS_CONFIG_H__ */

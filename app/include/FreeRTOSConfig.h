@@ -13,6 +13,7 @@
 #define configMAX_TASK_NAME_LEN                 ( 16 )
 #define configUSE_16_BIT_TICKS                  0
 #define configIDLE_SHOULD_YIELD                 1
+#define configUSE_STREAM_BUFFERS                1
 
 /* 必须开启这个宏，否则 tasks.c 不会编译 vTaskDelay */
 #define INCLUDE_vTaskDelay          1

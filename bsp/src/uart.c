@@ -1,5 +1,7 @@
 #include "uart.h"
 
+StreamBufferHandle_t Uart1RxStreamBuffer;
+
 //TODO* 需要调整为信号量加中断的设计，这里只是配置了一下休眠。
 void Putc_UART(char c) {
 	while ( UART0_FR_R & (1 << 5) ){
@@ -17,6 +19,7 @@ void Puts_UART(const char *s) {
 
 //TODO 注释 初始化了串口的中断。
 void Init_UART1_Interrupt(void) {
+    Uart1RxStreamBuffer = xStreamBufferCreate(UART1_RX_STREAM_BUFFER_SIZE, UART1_RX_TRIGGER_LEVEL);
     *(volatile uint32_t *)0x400FE104 |= (1 << 1); // RCGC1 UART
     *(volatile uint32_t *)0x400FE108 |= (1 << 3); // RCGC2 GPIO D (UART1引脚)
 
@@ -46,24 +49,24 @@ void Init_UART1_Interrupt(void) {
 }
 
 void UART1_Handler(void) {
-    //读取串口MIS
     uint32_t status = *(volatile uint32_t *)(UART1_BASE + 0x040);
-    UART1_IC_R = status; // UARTICR
     
-	//定义是否切换任务的标记
-    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    uint8_t TempDataArr[16];
+    uint8_t Count = 0;
+    
+    UART1_IC_R = status;
+    BaseType_t HigherPriorityTaskWoken = pdFALSE;
 
-    // --- 处理【接收】部分 (RX 或 RT 超时) ---
     if (status & ((1 << 4) | (1 << 6))) {
 		while (!(UART1_FR_R & (1 << 4))) { 
-            uint8_t data = (uint8_t)(UART1_DR_R & 0xFF);
-            
-            // 尝试发送到队列
-            xQueueSendFromISR(SensorQueue, &data, &xHigherPriorityTaskWoken);
+            TempDataArr[Count++] = (uint8_t)(UART1_DR_R & 0xFF);
+            if (Count >= 16) {
+                xStreamBufferSendFromISR(Uart1RxStreamBuffer, TempDataArr, Count, &HigherPriorityTaskWoken);
+                Count = 0;
+            }
         }
     }
     
-    // 3. 统一进行上下文切换
-    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    portYIELD_FROM_ISR(HigherPriorityTaskWoken);
     
 }

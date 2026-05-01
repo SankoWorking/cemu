@@ -3,7 +3,8 @@
 
 #include "task_attitude.h"
 #include "task_sensors.h"
-#include "task_attitude.h"
+#include "uart.h"
+
 
 //TODO注释
 void Init_System(void);

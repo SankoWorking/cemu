@@ -20,11 +20,12 @@ C_SOURCES += \
 	$(FREERTOS_DIR)/tasks.c \
 	$(FREERTOS_DIR)/list.c \
 	$(FREERTOS_DIR)/queue.c \
+	$(FREERTOS_DIR)/stream_buffer.c \
 	$(FREERTOS_DIR)/timers.c \
 	$(MEMMANG_DIR)/heap_4.c \
 	$(PORTABLE_DIR)/port.c \
 	$(wildcard app/src/*.c) \
-	$(wildcard bsp/src/*.c)
+	$(wildcard bsp/src/*.c)	\
 
 ASM_SOURCES = startup.s
 
