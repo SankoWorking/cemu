@@ -74,7 +74,7 @@ void Init_UART1_Interrupt(void) {
     UART1_IFLS_R &= ~0x3FU;
     UART1_IFLS_R |= (0x2U << 3) | (0x0U << 0);
 
-	//开启接收FIFO达阈值中断和接收超时中断，未开启发送FIFO低于阈值中断
+	//开启接收达阈值(bit 4)、发送低于阈值(bit 5)和接收超时中断(bit 6)
     UART1_IM_R |= (1U << 4) | (1U << 5) | (1U << 6);
 
 	//设置串口中断的优先级为5,处于freeRTOS的可控范围内，可以调用fromISR结尾的freeRTOS API

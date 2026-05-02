@@ -2,8 +2,8 @@
 #define __TASKS_CONFIG_H__
 
 #include "FreeRTOS.h"
-#include "task.h"
 #include <stdint.h>
+#include "uart.h"
 
 /*
 ================================================================================
@@ -27,7 +27,7 @@
 #define STACK_SAFETY_MONITOR        ( 128 )
 #define STACK_ATTITUDE_CTRL         ( 512 )  // 浮点运算和矩阵运算较多，建议给大一点
 #define STACK_SENSOR_DATA           ( 256 )
-#define STACK_COMMAND_PARSE         ( 256 )
+#define STACK_COMMAND_PARSE         ( 1024 )
 #define STACK_LOGGING               ( 512 )  // 文件系统底层调用可能占用较多堆栈
 #define STACK_STATUS_LED            ( 64  )
 

@@ -17,6 +17,7 @@ void Init_System(void) {
     
     Init_SensorData_Task((void *)Uart1RxStreamBuffer);
 
+    Init_Heartbeat_Tasks();
     Log_Msg("System, Started");
     vTaskStartScheduler();
     
