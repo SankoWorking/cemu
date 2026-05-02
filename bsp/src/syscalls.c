@@ -2,8 +2,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <stddef.h>
-#include "uart.h"
-#include "task_logger.h"
+#include "logger.h"
 
 typedef char * caddr_t;
 // 解决 _write 报错，将 printf 重定向到你的 UART

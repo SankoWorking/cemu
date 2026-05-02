@@ -1,7 +1,5 @@
 #include "uart.h"
 
-StreamBufferHandle_t Uart1RxStreamBuffer = NULL;
-
 /*
  *  声明UART0发送FIFO满足发送需求（TX FIFO 低于阈值）的二值信号量
  */
@@ -52,7 +50,6 @@ void Send_UART1(const uint8_t *data, size_t len) {
 }
 
 void Init_UART1_Interrupt(void) {
-    Uart1RxStreamBuffer = xStreamBufferCreate(UART1_RX_STREAM_BUFFER_SIZE, UART1_RX_TRIGGER_LEVEL);
     Uart1TxSem = xSemaphoreCreateBinary();
     //开启UART1和GPIOD的外设时钟
     UART1_RCC_R |= (1 << 1);

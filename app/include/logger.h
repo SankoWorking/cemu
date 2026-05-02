@@ -100,11 +100,6 @@ typedef struct {
 } LogMessage_t;
 
 /*
- *  初始化日志消息的队列
- */
-void Init_Log_Queue(void);
-
-/*
  *  初始化日志任务。
  */
 void Init_Log_Task(void);

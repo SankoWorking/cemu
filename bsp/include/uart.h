@@ -1,9 +1,9 @@
 #ifndef __UART_H__
 #define __UART_H__
 
+#include "tasks_interfaces.h"
 #include <stdint.h>
 #include <FreeRTOS.h>
-#include "stream_buffer.h"
 #include "semphr.h"
 
 /*
@@ -74,12 +74,6 @@
 #define NVIC_PRI1_R   (*(volatile uint32_t *)0xE000E404)
 
 /*
- *  配置UART1对应的stream buffer
- */
-#define UART1_RX_STREAM_BUFFER_SIZE  512
-#define UART1_RX_TRIGGER_LEVEL 1
-
-/*
  *  UART0配置
  */
 #define UART0_BASE          0x4000C000
@@ -114,10 +108,5 @@ void Init_UART1_Interrupt(void);
  *  此串口仅负责打印消息至终端，中断优先级低于UART1
  */
 void Init_UART0_Interrupt(void);
-
-/*
- *  声明UART1收到数据后用于存放数据的Buffer，传感器数据处理任务会在此Buffer中读取数据。
- */
-extern StreamBufferHandle_t Uart1RxStreamBuffer;
 
 #endif /* #ifndef __UART_H__ */

@@ -1,9 +1,11 @@
 #ifndef __TASKS_INIT_H__
 #define __TASKS_INIT_H__
 
-#include "task_attitude.h"
-#include "task_sensors.h"
-#include "task_commands.h"
+#include "tasks_interfaces.h"
+#include "FreeRTOS.h"
+#include "attitude.h"
+#include "sensors.h"
+#include "commands.h"
 #include "uart.h"
 
 void Init_System(void);

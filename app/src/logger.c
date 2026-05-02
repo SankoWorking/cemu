@@ -1,8 +1,8 @@
-#include "task_logger.h"
+#include "logger.h"
 
 static QueueHandle_t LogQueue = NULL;
 
-void Init_Log_Queue(void) {
+static void Init_Log_Queue(void) {
     if (LogQueue == NULL) {
         LogQueue = xQueueCreate(50, sizeof(LogMessage_t));
     }
@@ -142,6 +142,7 @@ static void Logging_Task(void *pvParameters) {
 }
 
 void Init_Log_Task(void) {
+    Init_Log_Queue();
     xTaskCreate(Logging_Task, 
                 "LogTask", 
                 STACK_LOGGING, 

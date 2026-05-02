@@ -1,4 +1,4 @@
-#include "task_attitude.h"
+#include "attitude.h"
 
 static TaskHandle_t attitudeTaskHandle = NULL;
 

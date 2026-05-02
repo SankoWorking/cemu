@@ -1,8 +1,5 @@
-#include "task_sensors.h"
+#include "sensors.h"
 
-AttitudeData_t CurrentAttitude;
-AltitudeData_t CurrentAltitude;
-UAVStatus_t UAVStatus;
 static TaskHandle_t targetTaskHandle = NULL;
 
 static void Process_Sensor_data(const mavlink_message_t *Msg){
@@ -38,7 +35,6 @@ static void Process_Sensor_data(const mavlink_message_t *Msg){
             
             break;
         }
-
         case MAVLINK_MSG_ID_VFR_HUD: {
             mavlink_vfr_hud_t hud;
             mavlink_msg_vfr_hud_decode(Msg, &hud);

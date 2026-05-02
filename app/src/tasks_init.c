@@ -2,9 +2,9 @@
 
 static TaskHandle_t taskHandle = NULL;
 
-//TODO 注释
 void Init_System(void) {
-    Init_Log_Queue();
+    Init_Interfaces();
+    
     Init_Log_Task();
 
     Init_Attitude_Task();
