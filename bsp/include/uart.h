@@ -120,9 +120,4 @@ void Init_UART0_Interrupt(void);
  */
 extern StreamBufferHandle_t Uart1RxStreamBuffer;
 
-/*
- *  声明UART0发送FIFO满足发送需求（低于发送阈值）的二值信号量
- */
-extern SemaphoreHandle_t Uart0TxSem;
-
 #endif /* #ifndef __UART_H__ */
