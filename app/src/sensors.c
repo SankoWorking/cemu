@@ -9,11 +9,12 @@
 static inline void Process_Heartbeat_Message(const mavlink_message_t* Msg, UAVStatus_t* StatusPtr) {
     mavlink_heartbeat_t Heartbeat;
     mavlink_msg_heartbeat_decode(Msg, &Heartbeat);
-    StatusPtr->Timestamp = xTaskGetTickCount(); 
+    StatusPtr->Timestamp = Get_System_Time_Usec(); 
     StatusPtr->SystemId = Msg->sysid;
     StatusPtr->BaseMode = Heartbeat.base_mode;
     StatusPtr->SystemStatus = Heartbeat.system_status;
-    StatusPtr->CustomMode = Heartbeat.custom_mode;
+    StatusPtr->CustomMode = __builtin_bswap32(Heartbeat.custom_mode);
+    Log_Raw((uint8_t*)&(StatusPtr->CustomMode), 4);
     Log_UAVStatus(StatusPtr->Timestamp, 
                   StatusPtr->SystemId, 
                   StatusPtr->BaseMode, 
@@ -39,7 +40,7 @@ static inline void Process_Attitude_Message(const mavlink_message_t* Msg,
     AttPtr->RollSpeed  = AttRaw.rollspeed;
     AttPtr->PitchSpeed = AttRaw.pitchspeed;
     AttPtr->YawSpeed   = AttRaw.yawspeed;
-    AttPtr->Timestamp = xTaskGetTickCount(); 
+    AttPtr->Timestamp = Get_System_Time_Usec(); 
     if (TargetTask != NULL) {
         xTaskNotifyGive(TargetTask);
     }
@@ -56,7 +57,7 @@ static inline void Process_VFR_HUD_Message(const mavlink_message_t* Msg, Altitud
     mavlink_msg_vfr_hud_decode(Msg, &hud);
     AltPtr->Alttitude = hud.alt;
     AltPtr->ClimbRate = hud.climb;
-    AltPtr->Timestamp = xTaskGetTickCount(); 
+    AltPtr->Timestamp = Get_System_Time_Usec(); 
     Log_Altitude(AltPtr->Timestamp, AltPtr->Alttitude, AltPtr->ClimbRate);
 }
 

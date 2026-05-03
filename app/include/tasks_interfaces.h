@@ -8,6 +8,12 @@
 #include <stddef.h>
 #include <stdint.h>
 
+/**
+ *  @brief 获取系统从启动至今的 64 位微秒时间戳
+ *  @return uint64_t 微秒级时间戳 (us)
+ */
+uint64_t Get_System_Time_Usec(void);
+
 /*
  *  存放无人机状态的全局结构体，收到心跳包后会将无人机状态信息更新到此处。
  *
@@ -18,7 +24,7 @@
  *  CustomMode  ->  飞行模式
  */
 typedef struct {
-    uint32_t Timestamp;
+    uint64_t Timestamp;
     uint8_t SystemId;
     uint8_t BaseMode;
     uint8_t SystemStatus;
@@ -34,9 +40,9 @@ extern UAVStatus_t UAVStatus;
  *  ClimbRate   ->  无人机爬升速率
  */
 typedef struct {
+    uint64_t Timestamp;
     float Alttitude;
     float ClimbRate;
-    uint32_t Timestamp;
 } AltitudeData_t;
 extern AltitudeData_t CurrentAltitude;
 
@@ -52,13 +58,13 @@ extern AltitudeData_t CurrentAltitude;
  *  YawSpeed    ->  航向角速度 (rad/s)
  */
 typedef struct {
+    uint64_t Timestamp;
     float Roll;
     float Pitch;
     float Yaw;
     float RollSpeed;
     float PitchSpeed;
     float YawSpeed;
-    uint32_t Timestamp;
 } AttitudeData_t;
 extern AttitudeData_t CurrentAttitude;
 

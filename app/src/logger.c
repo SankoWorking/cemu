@@ -29,7 +29,7 @@ static inline int Format_Data_Log(char *Buffer, size_t Size, const LogMessage_t 
  *  @return 格式化后的字符串长度
  */
 static inline int Format_MSG_Log(char *Buffer, size_t Size, const LogMessage_t *Log) {
-    return snprintf(Buffer, Size, "[%lu] [MSG]: %s\r\n",
+    return snprintf(Buffer, Size, "[%llu] [MSG]: %s\r\n",
                     Log->Timestamp, 
                     Log->Payload.Msg);
 }
@@ -43,8 +43,8 @@ static inline int Format_MSG_Log(char *Buffer, size_t Size, const LogMessage_t *
  *  @return 格式化后的字符串长度
  */
 static inline int Format_UAV_Status_Log(char *Buffer, size_t Size, const LogMessage_t *Log) {
-    return snprintf(Buffer, Size, "[%u] [UAV] ST: ID:%d B:%d S:%d C:%u\r\n",
-                    (unsigned int)Log->Timestamp,
+    return snprintf(Buffer, Size, "[%llu] [UAV] ST: ID:%d B:%d S:%d C:%lu\r\n",
+                    Log->Timestamp,
                     Log->Payload.UAVStatus.SystemId, 
                     Log->Payload.UAVStatus.BaseMode,
                     Log->Payload.UAVStatus.SystemStatus, 
@@ -60,12 +60,12 @@ static inline int Format_UAV_Status_Log(char *Buffer, size_t Size, const LogMess
  *  @return 格式化后的字符串长度
  */
 static inline int Format_Raw_Hex_Log(char *Buffer, size_t Size, const LogMessage_t *Log) {
-    return snprintf(Buffer, Size, "[%lu] [RAW]: %02X %02X %02X %02X...\r\n",
-                    Log->Timestamp,
-                    Log->Payload.Raw[0], 
-                    Log->Payload.Raw[1],
-                    Log->Payload.Raw[2], 
-                    Log->Payload.Raw[3]);
+    int Offset = snprintf(Buffer, Size, "[RAW]: ");
+    for (int i = 0; i < MAX_BYTES_LENGTH; i++) { 
+        if (Size - Offset < 4) break;
+        Offset += snprintf(Buffer + Offset, Size - Offset, "%02X ", Log->Payload.Raw[i]);
+    }
+    return Offset + snprintf(Buffer + Offset, Size - Offset, "\r\n");
 }
 
 /*
@@ -77,7 +77,7 @@ static inline int Format_Raw_Hex_Log(char *Buffer, size_t Size, const LogMessage
  *  @return 格式化后的字符串长度
  */
 static inline int Format_ATT_Log(char *Buffer, size_t Size, const LogMessage_t *Log) {
-    return snprintf(Buffer, Size, "[%lu] [ATT] R:%.1f, P:%.1f, Y:%.1f\r\n",
+    return snprintf(Buffer, Size, "[%llu] [ATT] R:%.1f, P:%.1f, Y:%.1f\r\n",
                     Log->Timestamp,
                     Log->Payload.Att.Roll,
                     Log->Payload.Att.Pitch,
@@ -93,7 +93,7 @@ static inline int Format_ATT_Log(char *Buffer, size_t Size, const LogMessage_t *
  *  @return 格式化后的字符串长度
  */
 static inline int Format_ALT_Log(char *Buffer, size_t Size, const LogMessage_t *Log) {
-    return snprintf(Buffer, Size, "[%lu] [ALT] H:%.2f m | Vz:%.2f m/s\r\n",
+    return snprintf(Buffer, Size, "[%llu] [ALT] H:%.2f m | Vz:%.2f m/s\r\n",
                     Log->Timestamp, 
                     Log->Payload.Alt.Alttitude, 
                     Log->Payload.Alt.ClimbRate);
@@ -154,7 +154,6 @@ void Init_Log_Task(void) {
 void Log_Data(float Float) {
     LogMessage_t Msg;
     Msg.LogType = LOG_TYPE_DATA;
-    Msg.Timestamp = xTaskGetTickCount();
     Msg.Payload.Data = Float;
     xQueueSend(LogQueue, &Msg, 0);
 }
@@ -168,16 +167,16 @@ void Log_Msg(const char* Str) {
     xQueueSend(LogQueue, &Msg, 0);
 }
 
-void Log_Raw(const uint8_t* Byte, uint8_t Len) {
+void Log_Raw(const uint8_t* Data, uint8_t Len) {
     LogMessage_t Msg;
+    memset(&Msg, 0, sizeof(LogMessage_t));
     Msg.LogType = LOG_TYPE_RAW_HEX;
-    Msg.Timestamp = xTaskGetTickCount();
-    if (Len > MAX_RAW_LENGTH) Len = MAX_RAW_LENGTH;
-    memcpy(Msg.Payload.Raw, Byte, Len);
+    uint8_t CopyLen = (Len > MAX_BYTES_LENGTH) ? MAX_BYTES_LENGTH : Len;
+    memcpy(Msg.Payload.Raw, Data, CopyLen);
     xQueueSend(LogQueue, &Msg, 0);
 }
 
-void Log_Attitude(uint32_t Timestamp, float Roll, float Pitch, float Yaw) {
+void Log_Attitude(uint64_t Timestamp, float Roll, float Pitch, float Yaw) {
     LogMessage_t Msg;
     Msg.LogType = LOG_TYPE_ATT;
     Msg.Timestamp = Timestamp;
@@ -187,7 +186,7 @@ void Log_Attitude(uint32_t Timestamp, float Roll, float Pitch, float Yaw) {
     xQueueSend(LogQueue, &Msg, 0);
 }
 
-void Log_Altitude(uint32_t Timestamp, float Alttitude, float ClimbRate) {
+void Log_Altitude(uint64_t Timestamp, float Alttitude, float ClimbRate) {
     LogMessage_t Msg;
     Msg.LogType = LOG_TYPE_ALT;
     Msg.Timestamp = Timestamp;
@@ -196,7 +195,7 @@ void Log_Altitude(uint32_t Timestamp, float Alttitude, float ClimbRate) {
     xQueueSend(LogQueue, &Msg, 0);
 }
 
-void Log_UAVStatus(uint32_t Timestamp, uint8_t SystemId, uint8_t BaseMode, uint8_t SystemStatus, uint32_t CustomMode){
+void Log_UAVStatus(uint64_t Timestamp, uint8_t SystemId, uint8_t BaseMode, uint8_t SystemStatus, uint32_t CustomMode){
     LogMessage_t Msg;
     Msg.LogType = LOG_TYPE_UAV_STATUS;
     Msg.Timestamp = Timestamp;

@@ -2,27 +2,28 @@
 #define __TASK_LOGGER_H__
 
 #include "tasks_config.h"
-#include <stdio.h>
-#include <string.h>
 #include "uart.h" 
 #include "queue.h"
 
-/*
+
+#include <stdio.h>
+#include <string.h>
+
+/**
  *  定义用于弧度转换为角度的常量
  */
 #define RAD_TO_DEG (57.2957795f)
 
-/*
+/**
+ *  定义字节流日志的最大长度
+ */
+#define MAX_BYTES_LENGTH 16
+/**
  *  定义文本日志的最大长度
  */
 #define MAX_MSG_LENGTH 16
 
-/*
- *  定义字节流日志的最多能打印的字节数量
- */
-#define MAX_RAW_LENGTH 16
-
-/*
+/**
  *  日志类型枚举。
  *  LOG_TYPE_DATA       ->  浮点数类型的日志，主要用于在调试过程中打印信息。
  *  LOG_TYPE_MSG        ->  文本类型的日志，打印纯文本类型的日志。
@@ -40,7 +41,7 @@ typedef enum {
     LOG_TYPE_ALT = 5
 } LogType_t;
 
-/*
+/**
  *  无人机状态日志结构体，会被用于无人机日志结构体的载荷联合体部分，是无人机状态结构体去掉时间戳的版本。
  *
  *  SystemID    ->  发送方的系统ID
@@ -87,12 +88,12 @@ typedef struct {
  *  Payload     ->  日志载荷联合体。
  */
 typedef struct {
-    uint32_t Timestamp;
+    uint64_t Timestamp;
     LogType_t LogType;
     union {
         float Data;
         char  Msg[MAX_MSG_LENGTH];
-        uint8_t Raw[MAX_RAW_LENGTH];
+        uint8_t Raw[MAX_BYTES_LENGTH];
         LogUAVStatus_t UAVStatus;
         LogAttitude_t Att;
         LogAltitude_t Alt;
@@ -116,12 +117,23 @@ void Log_Data(float Float);
  */
 void Log_Msg(const char* Str);
 
-/*
- *  打印字节流日志到终端，用于调试串口数据的过程中。
- *  @param Byte 文本日志的内容，最大长度为定义为MAX_MSG_LENGTH
+/**
+ *  @brief  打印多个字节日志到终端，最多MAX_BYTES_LENGTH个字节，用于调试串口数据的过程中。
+ *          目前会固定打印16个字节，如果期望打印的字节数小于16,未填充的部分会是00。
+ *  @param Byte 要打印的字节
+ *  @param Len  待打印的字节数量
  */
-void Log_Raw(const uint8_t* Byte, uint8_t Len);
+void Log_Raw(const uint8_t* Data, uint8_t Len);
 
+/*
+ *  用于打印无人机状态日志的函数，会将无人机的状态信息塞入日志任务队列。
+ *
+ *  @param Timestamp 无人机状态更新的时间戳
+ *  @param Roll 滚转角
+ *  @param Pitch 俯仰角
+ *  @param Yaw 航向角
+ */
+void Log_Attitude(uint64_t Timestamp, float Roll, float Pitch, float Yaw); 
 /*
  *  用于打印无人机状态日志的函数，会将无人机的状态信息塞入日志任务队列。
  *
@@ -131,7 +143,7 @@ void Log_Raw(const uint8_t* Byte, uint8_t Len);
  *  @param SystemStatus 无人机健康情况
  *  @param CustomMode 无人机飞行模式
  */
-void Log_UAVStatus(uint32_t Timestamp, uint8_t SystemId, uint8_t BaseMode, uint8_t SystemStatus, uint32_t CustomMode);
+void Log_UAVStatus(uint64_t Timestamp, uint8_t SystemId, uint8_t BaseMode, uint8_t SystemStatus, uint32_t CustomMode);
 
 /*
  *  用于打印无人机海拔的函数，会将无人机的海拔信息塞入日志任务队列。
@@ -140,6 +152,6 @@ void Log_UAVStatus(uint32_t Timestamp, uint8_t SystemId, uint8_t BaseMode, uint8
  *  @param Alttitude 无人机的海拔
  *  @param ClimbRate 无人机的爬升速度
  */
-void Log_Altitude(uint32_t Timestamp, float Alttitude, float ClimbRate);
+void Log_Altitude(uint64_t Timestamp, float Alttitude, float ClimbRate);
 
 #endif  /* #ifndef __TASK_LOGGER_H__ */
