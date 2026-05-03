@@ -13,15 +13,15 @@ static void Attitude_Task(void * pvParameters) {
     }
 }
 
-void Init_Attitude_Task(void) {
+TaskHandle_t Init_Attitude_Task(void) {
+    TaskHandle_t Handle = NULL;
+
     xTaskCreate(Attitude_Task, 
                 "AttitudeTask", 
                 STACK_ATTITUDE_CTRL, 
                 NULL, 
                 PRIO_ATTITUDE_CTRL_TASK, 
-                &attitudeTaskHandle);
-}
-
-TaskHandle_t Get_Attitude_Task_Handle(void) {
-    return attitudeTaskHandle;
+                &Handle);
+                
+    return Handle;
 }

@@ -1,24 +1,25 @@
 #include "tasks_init.h"
 
-static TaskHandle_t taskHandle = NULL;
+static SensorTaskParams_t SensorParams;
 
 void Init_System(void) {
     Init_Interfaces();
     
     Init_Log_Task();
 
-    Init_Attitude_Task();
-    taskHandle = Get_Attitude_Task_Handle();
-    Set_Target_Task_Handle(taskHandle);
+    TaskHandle_t AttitudeTaskHandle = Init_Attitude_Task();
     
     Init_UART0_Interrupt();
     Init_UART1_Interrupt();
 
-    
-    Init_SensorData_Task((void *)Uart1RxStreamBuffer);
+    SensorParams.UARTBuffer = Uart1RxStreamBuffer;
+    SensorParams.AttitudeTaskHandle = AttitudeTaskHandle;
+    Init_Sensor_Task(&SensorParams);
 
     Init_Heartbeat_Tasks();
+
     Log_Msg("System, Started");
+    
     vTaskStartScheduler();
     
 }

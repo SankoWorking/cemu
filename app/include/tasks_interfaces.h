@@ -73,8 +73,49 @@ extern AttitudeData_t CurrentAttitude;
  */
 extern StreamBufferHandle_t Uart1RxStreamBuffer;
 
-/*
- *  初始化任务间用于通信的所有接口
+/**
+ *  @brief 初始化任务间用于通信的所有接口
  */
 void Init_Interfaces(void);
+
+/* Sensor任务参数结构体 */
+typedef struct {
+    StreamBufferHandle_t UARTBuffer;
+    TaskHandle_t AttitudeTaskHandle;
+} SensorTaskParams_t;
+
+/**
+ *  @brief Attitude 向 Command 发送混控后的电机输出
+ * 
+ *  MotorOutputs[4]  ->  四个电机的输出值 (对应四旋翼 M1-M4),取值范围: 0.0f 
+ *                      (停止) 到 1.0f (全速)对应 MAVLink 消息中的 controls[0] 
+ *                      到 controls[3]
+ *  TimestampUs      ->  微秒级系统时间戳,用于同步仿真环境 (Gazebo) 的物理引擎时间
+ *  SystemMode       ->  无人机运行模式,128 代表 MAV_MODE_FLAG_SAFETY_ARMED (已
+ *                       解锁)
+ */
+typedef struct {
+    uint64_t TimestampUs;
+    float MotorOutputs[4];
+    uint8_t SystemMode;
+} MotorCommandMsg_t;
+extern QueueHandle_t xMotorControlQueue;
+
+/**
+ *  为了获取微妙级的系统时间而定义的SysTick 硬件寄存器基地址 (Cortex-M 标准) 
+ */
+#define SCS_BASE            (0xE000E000UL)
+#define SysTick_BASE        (SCS_BASE +  0x0010UL)
+/* 定义 SysTick 结构体 */
+typedef struct {
+  volatile uint32_t CTRL;    /* 控制及状态寄存器 (0xe000e010) */
+  volatile uint32_t LOAD;    /* 重装载数值寄存器 (0xe000e014) */
+  volatile uint32_t VAL;     /* 当前数值寄存器 (0xe000e018) */
+  volatile uint32_t CALIB;   /* 校准数值寄存器 (0xe000e01c) */
+} SysTick_t;
+/* 将 SysTick 指针映射到该地址 */
+#define SysTick             ((SysTick_t *) SysTick_BASE)
+/* 必要的位定义 */
+#define SysTick_CTRL_COUNTFLAG_Msk (1UL << 16)
+
 #endif /* #ifndef __TASKS_INTERFACES_H__ */
