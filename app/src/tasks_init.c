@@ -16,7 +16,7 @@ void Init_System(void) {
     SensorParams.AttitudeTaskHandle = AttitudeTaskHandle;
     Init_Sensor_Task(&SensorParams);
 
-    Init_Heartbeat_Tasks();
+    Init_Command_Tasks();
 
     Log_Msg("System, Started");
     

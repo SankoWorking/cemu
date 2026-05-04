@@ -100,6 +100,24 @@ static inline int Format_ALT_Log(char *Buffer, size_t Size, const LogMessage_t *
 }
 
 /*
+ *  格式化Attitude任务输出的无人机电机混控指令日志的内联函数，会被用于日志任务中，目的是增强代码易读性。
+ *  
+ *  @param Buffer 存放格式化后日志的缓冲区
+ *  @param Size 缓冲区的大小
+ *  @param Log  待格式化的日志消息
+ *  @return 格式化后的字符串长度
+ */
+static inline int Format_MOTOR_Log(char *Buffer, size_t Size, const LogMessage_t *Log) {
+    return snprintf(Buffer, Size, "[%llu] [MOT] M1:%.2f M2:%.2f M3:%.2f M4:%.2f | Mode:%d\r\n",
+                    Log->Timestamp, 
+                    Log->Payload.Motor.M[0],
+                    Log->Payload.Motor.M[1],
+                    Log->Payload.Motor.M[2],
+                    Log->Payload.Motor.M[3],
+                    Log->Payload.Motor.Mode);
+}
+
+/*
  *  日志任务的任务函数，也是最终调用UART0串口发送日志到终端的函数，参数未使用。
  */
 static void Logging_Task(void *pvParameters) {
@@ -129,6 +147,9 @@ static void Logging_Task(void *pvParameters) {
                     break;
                 case LOG_TYPE_ALT:
                     Len = Format_ALT_Log(Buffer, sizeof(Buffer), &Log);
+                    break;
+                case LOG_TYPE_MOTOR:
+                    Len = Format_MOTOR_Log(Buffer, sizeof(Buffer), &Log);
                     break;
                 default: 
                     break;
@@ -203,5 +224,19 @@ void Log_UAVStatus(uint64_t Timestamp, uint8_t SystemId, uint8_t BaseMode, uint8
     Msg.Payload.UAVStatus.BaseMode = BaseMode;
     Msg.Payload.UAVStatus.SystemStatus = SystemStatus;
     Msg.Payload.UAVStatus.CustomMode = CustomMode;
+    xQueueSend(LogQueue, &Msg, 0);
+}
+
+void Log_Motor(uint64_t Timestamp, float M1, float M2, float M3, float M4, uint8_t Mode) {
+    if (LogQueue == NULL) return;
+    LogMessage_t Msg;
+    Msg.LogType = LOG_TYPE_MOTOR;
+    Msg.Timestamp = Timestamp;
+    Msg.Payload.Motor.M[0] = M1;
+    Msg.Payload.Motor.M[1] = M2;
+    Msg.Payload.Motor.M[2] = M3;
+    Msg.Payload.Motor.M[3] = M4;
+    Msg.Payload.Motor.Mode = Mode;
+    
     xQueueSend(LogQueue, &Msg, 0);
 }

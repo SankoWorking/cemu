@@ -9,7 +9,7 @@
 #define configTICK_RATE_HZ                      ((TickType_t)1000)
 #define configMAX_PRIORITIES                    ( 8 )
 #define configMINIMAL_STACK_SIZE                ( 128 )
-#define configTOTAL_HEAP_SIZE                   ( ( size_t ) ( 20 * 1024 ) ) /* 分配 20K 给 FreeRTOS 堆 */
+#define configTOTAL_HEAP_SIZE                   ( ( size_t ) ( 32 * 1024 ) ) /* 分配 20K 给 FreeRTOS 堆 */
 #define configMAX_TASK_NAME_LEN                 ( 16 )
 #define configUSE_16_BIT_TICKS                  0
 #define configIDLE_SHOULD_YIELD                 1
@@ -20,7 +20,7 @@
 #define INCLUDE_vTaskPrioritySet    1
 #define INCLUDE_vTaskSuspend        1
 #define INCLUDE_xTaskDelayUntil     1
-
+#define INCLUDE_vTaskDelete         1
 
 
 /* 开启软件定时器相关配置 */

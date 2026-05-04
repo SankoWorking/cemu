@@ -11,6 +11,11 @@ static SemaphoreHandle_t Uart0TxSem = NULL;
 static SemaphoreHandle_t Uart1TxSem = NULL;
 
 /*
+ *  增加UART1互斥锁，防止并发抢占导致的数据包/字符串被截断交错
+ */
+static SemaphoreHandle_t Uart1Mutex = NULL;
+
+/*
  *  UART0的串口打印函数。会将c写入UART0的数据寄存器，当FIFO满时，会阻塞等待标志TX FIFO空阈值的二值信号量。
  *  @param c 待打印的字节
  */
@@ -41,16 +46,24 @@ static void Putc_UART1(uint8_t c) {
 
 /*
  * UART1的指令流发送函数。
- * 供飞控控制任务调用，向14540端口发送PX4/Gazebo控制指令。
+ * 供飞控控制任务调用，向14580端口发送PX4/Gazebo控制指令。
  */
 void Send_UART1(const uint8_t *data, size_t len) {
+    if (Uart1Mutex == NULL) return;
+
+    xSemaphoreTake(Uart1Mutex, portMAX_DELAY);
+
     for (size_t i = 0; i < len; i++) {
         Putc_UART1(data[i]);
     }
+
+    xSemaphoreGive(Uart1Mutex);
 }
 
 void Init_UART1_Interrupt(void) {
     Uart1TxSem = xSemaphoreCreateBinary();
+    xSemaphoreGive(Uart1TxSem);
+    Uart1Mutex = xSemaphoreCreateMutex();
     //开启UART1和GPIOD的外设时钟
     UART1_RCC_R |= (1 << 1);
     UART1_RCC_GPIOD_R |= (1 << 3);

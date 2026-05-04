@@ -8,12 +8,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-/**
- *  @brief 获取系统从启动至今的 64 位微秒时间戳
- *  @return uint64_t 微秒级时间戳 (us)
- */
+extern volatile uint64_t CurrentSimTimeUs;
 uint64_t Get_System_Time_Usec(void);
-
 /*
  *  存放无人机状态的全局结构体，收到心跳包后会将无人机状态信息更新到此处。
  *
@@ -33,40 +29,50 @@ typedef struct {
 extern UAVStatus_t UAVStatus;
 
 /*
- *  无人机海拔结全局构体，收到海拔消息包会将最新的海拔信息更新到此处。
+ *  气压计原始数据全局结构体 (替代原 AltitudeData_t)
+ *  收到 HIL_SENSOR 消息包后更新。
  *   
- *  Timestamp   ->  接收到消息包的系统时间
- *  Alttitude   ->  无人机当前海拔
- *  ClimbRate   ->  无人机爬升速率
+ *  Timestamp    ->  接收到消息包的物理仿真时间 (微秒 us)
+ *  AbsPressure  ->  绝对气压 (hPa 或 mbar)
+ *  PressureAlt  ->  气压计推算出的海拔高度 (m)
  */
 typedef struct {
     uint64_t Timestamp;
-    float Alttitude;
-    float ClimbRate;
-} AltitudeData_t;
-extern AltitudeData_t CurrentAltitude;
+    float AbsPressure;
+    float PressureAlt;
+} BaroSensorData_t;
+
+extern BaroSensorData_t CurrentBaroData;
 
 /*
- *  无人机姿态全局结构体，收到姿态数据包后会更新此全局结构体。
+ *  IMU 与磁力计原始数据全局结构体 (替代原 AttitudeData_t)
+ *  收到 HIL_SENSOR 消息包后更新。
  *
- *  Timestamp   ->  接收到消息包的系统时间
- *  Roll        ->  横滚角 (rad, 范围: -pi..+pi)
- *  Pitch       ->  俯仰角 (rad, 范围: -pi/2..+pi/2)
- *  Yaw         ->  航向角 (rad, 范围: -pi..+pi)
- *  RollSpeed   ->  横滚角速度 (rad/s)
- *  PitchSpeed  ->  俯仰角速度 (rad/s)
- *  YawSpeed    ->  航向角速度 (rad/s)
+ *  Timestamp  ->  接收到消息包的物理仿真时间 (微秒 us)
+ *  AccelX/Y/Z ->  三轴加速度 (m/s^2)
+ *  GyroX/Y/Z  ->  三轴角速度 (rad/s)
+ *  MagX/Y/Z   ->  三轴磁力计读数 (Gauss)
  */
 typedef struct {
     uint64_t Timestamp;
-    float Roll;
-    float Pitch;
-    float Yaw;
-    float RollSpeed;
-    float PitchSpeed;
-    float YawSpeed;
-} AttitudeData_t;
-extern AttitudeData_t CurrentAttitude;
+    
+    // 加速度计 (Accelerometer)
+    float AccelX;
+    float AccelY;
+    float AccelZ;
+    
+    // 陀螺仪 (Gyroscope)
+    float GyroX;
+    float GyroY;
+    float GyroZ;
+    
+    // 磁力计 (Magnetometer)
+    float MagX;
+    float MagY;
+    float MagZ;
+} ImuSensorData_t;
+
+extern ImuSensorData_t CurrentImuData;
 
 /*
  *  配置UART1对应的stream buffer
@@ -105,7 +111,7 @@ typedef struct {
     float MotorOutputs[4];
     uint8_t SystemMode;
 } MotorCommandMsg_t;
-extern QueueHandle_t xMotorControlQueue;
+extern QueueHandle_t MotorControlQueue;
 
 /**
  *  为了获取微妙级的系统时间而定义的SysTick 硬件寄存器基地址 (Cortex-M 标准) 

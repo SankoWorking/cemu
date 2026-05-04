@@ -38,7 +38,8 @@ typedef enum {
     LOG_TYPE_RAW_HEX = 2,
     LOG_TYPE_UAV_STATUS = 3,
     LOG_TYPE_ATT = 4,
-    LOG_TYPE_ALT = 5
+    LOG_TYPE_ALT = 5,
+    LOG_TYPE_MOTOR = 6
 } LogType_t;
 
 /**
@@ -80,6 +81,10 @@ typedef struct {
     float Yaw;
 } LogAttitude_t;
 
+typedef struct {
+    float M[4];
+    uint8_t Mode;
+} LogMotor_t;
 /*
  *  无人机日志消息结构体，内部包含一个联合体，可根据需要填充不同的日志内容。
  *
@@ -97,6 +102,7 @@ typedef struct {
         LogUAVStatus_t UAVStatus;
         LogAttitude_t Att;
         LogAltitude_t Alt;
+        LogMotor_t Motor;
     } Payload;
 } LogMessage_t;
 
@@ -153,5 +159,18 @@ void Log_UAVStatus(uint64_t Timestamp, uint8_t SystemId, uint8_t BaseMode, uint8
  *  @param ClimbRate 无人机的爬升速度
  */
 void Log_Altitude(uint64_t Timestamp, float Alttitude, float ClimbRate);
+
+/**
+ *  用于打印无人机海拔的函数，会将无人机的海拔信息塞入日志任务队列。
+ *
+ *  @param Timestamp 无人机海拔更新的时间戳
+ *  @param M1 电机的参数
+ *  @param M2 电机的参数
+ *  @param M3 电机的参数
+ *  @param M4 电机的参数
+ *  @param  Mode 无人机是否已经解锁
+ */
+void Log_Motor(uint64_t Timestamp, float M1, float M2, float M3, float M4, uint8_t Mode);
+
 
 #endif  /* #ifndef __TASK_LOGGER_H__ */

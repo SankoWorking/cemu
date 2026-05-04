@@ -32,13 +32,14 @@ ASM_SOURCES = startup.s
 CFLAGS = -mcpu=cortex-m3 $(C_INCLUDES) -mthumb -nostartfiles -ffreestanding -g -O0
 LDFLAGS = -T link_lm3s6965evb.ld
 
+LIBS = -lm
 
 .PHONY: all clean run debug
 
 all: $(TARGET)
 
 $(TARGET): $(ASM_SOURCES) $(C_SOURCES)
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
+	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 	@echo "Complied $(TARGET) successfully!"
 
 run: $(TARGET)
