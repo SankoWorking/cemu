@@ -4,7 +4,7 @@ static SensorTaskParams_t SensorParams;
 
 void Init_System(void) {
     Init_Interfaces();
-    
+
     Init_Log_Task();
 
     TaskHandle_t AttitudeTaskHandle = Init_Attitude_Task();
@@ -18,8 +18,6 @@ void Init_System(void) {
 
     Init_Command_Tasks();
 
-    Log_Msg("System, Started");
-    
+    Log_Generic("System Started");
     vTaskStartScheduler();
-    
 }

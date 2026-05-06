@@ -2,36 +2,13 @@
 
 static QueueHandle_t LogQueue = NULL;
 
+/**
+ * @brief 初始化日志队列
+ */
 static void Init_Log_Queue(void) {
     if (LogQueue == NULL) {
         LogQueue = xQueueCreate(50, sizeof(LogMessage_t));
     }
-}
-
-/*
- *  格式化数据日志的内联函数，会被用于日志任务中，目的是增强代码易读性。
- *  
- *  @param Buffer 存放格式化后日志的缓冲区
- *  @param Size 缓冲区的大小
- *  @param Log  待格式化的日志消息
- *  @return 格式化后的字符串长度
- */
-static inline int Format_Data_Log(char *Buffer, size_t Size, const LogMessage_t *Log) {
-    return snprintf(Buffer, Size, "%.3f", Log->Payload.Data);
-}
-
-/*
- *  格式化纯文本日志的内联函数，会被用于日志任务中，目的是增强代码易读性。
- *  
- *  @param Buffer 存放格式化后日志的缓冲区
- *  @param Size 缓冲区的大小
- *  @param Log  待格式化的日志消息
- *  @return 格式化后的字符串长度
- */
-static inline int Format_MSG_Log(char *Buffer, size_t Size, const LogMessage_t *Log) {
-    return snprintf(Buffer, Size, "[%llu] [MSG]: %s\r\n",
-                    Log->Timestamp, 
-                    Log->Payload.Msg);
 }
 
 /*
@@ -49,23 +26,6 @@ static inline int Format_UAV_Status_Log(char *Buffer, size_t Size, const LogMess
                     Log->Payload.UAVStatus.BaseMode,
                     Log->Payload.UAVStatus.SystemStatus, 
                     Log->Payload.UAVStatus.CustomMode);
-}
-
-/*
- *  格式化字节流日志的内联函数，会被用于日志任务中，目的是增强代码易读性。
- *  
- *  @param Buffer 存放格式化后日志的缓冲区
- *  @param Size 缓冲区的大小
- *  @param Log  待格式化的日志消息
- *  @return 格式化后的字符串长度
- */
-static inline int Format_Raw_Hex_Log(char *Buffer, size_t Size, const LogMessage_t *Log) {
-    int Offset = snprintf(Buffer, Size, "[RAW]: ");
-    for (int i = 0; i < MAX_BYTES_LENGTH; i++) { 
-        if (Size - Offset < 4) break;
-        Offset += snprintf(Buffer + Offset, Size - Offset, "%02X ", Log->Payload.Raw[i]);
-    }
-    return Offset + snprintf(Buffer + Offset, Size - Offset, "\r\n");
 }
 
 /*
@@ -130,15 +90,6 @@ static void Logging_Task(void *pvParameters) {
             int Len = 0;
             
             switch (Log.LogType) {
-                case LOG_TYPE_DATA:
-                    Len = Format_Data_Log(Buffer, sizeof(Buffer), &Log);
-                    break;
-                case LOG_TYPE_MSG:
-                    Len = Format_MSG_Log(Buffer, sizeof(Buffer), &Log);
-                    break;
-                case LOG_TYPE_RAW_HEX:
-                    Len = Format_Raw_Hex_Log(Buffer, sizeof(Buffer), &Log);
-                    break;
                 case LOG_TYPE_UAV_STATUS:
                     Len = Format_UAV_Status_Log(Buffer, sizeof(Buffer), &Log);
                     break;
@@ -172,30 +123,23 @@ void Init_Log_Task(void) {
                 NULL);
 }
 
-void Log_Data(float Float) {
+void Log_Generic(const char* Format, ...) {
+    if (LogQueue == NULL) return;
+
     LogMessage_t Msg;
-    Msg.LogType = LOG_TYPE_DATA;
-    Msg.Payload.Data = Float;
+
+    Msg.LogType = LOG_TYPE_GENERIC;
+
+    va_list args;
+    va_start(args, Format);
+    
+    vsnprintf(Msg.Payload.Text, MAX_TEXT_LENGTH, Format, args);
+    
+    va_end(args);
+
     xQueueSend(LogQueue, &Msg, 0);
 }
 
-void Log_Msg(const char* Str) {
-    LogMessage_t Msg;
-    Msg.LogType = LOG_TYPE_MSG;
-    Msg.Timestamp = xTaskGetTickCount();
-    strncpy(Msg.Payload.Msg, Str, MAX_MSG_LENGTH-1);
-    Msg.Payload.Msg[MAX_MSG_LENGTH-1] = '\0';
-    xQueueSend(LogQueue, &Msg, 0);
-}
-
-void Log_Raw(const uint8_t* Data, uint8_t Len) {
-    LogMessage_t Msg;
-    memset(&Msg, 0, sizeof(LogMessage_t));
-    Msg.LogType = LOG_TYPE_RAW_HEX;
-    uint8_t CopyLen = (Len > MAX_BYTES_LENGTH) ? MAX_BYTES_LENGTH : Len;
-    memcpy(Msg.Payload.Raw, Data, CopyLen);
-    xQueueSend(LogQueue, &Msg, 0);
-}
 
 void Log_Attitude(uint64_t Timestamp, float Roll, float Pitch, float Yaw) {
     LogMessage_t Msg;

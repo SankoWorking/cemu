@@ -8,8 +8,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
+/**
+ *  @brief 全局仿真时间戳，每次从Gazebo获取数据后会更新此时间戳。
+ */
 extern volatile uint64_t CurrentSimTimeUs;
-uint64_t Get_System_Time_Usec(void);
+
 /*
  *  存放无人机状态的全局结构体，收到心跳包后会将无人机状态信息更新到此处。
  *

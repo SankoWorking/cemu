@@ -2,7 +2,7 @@
 #include "tasks_interfaces.h" 
 
 /**
- * @brief 心跳包发送任务 (保持发送，以维持链路连接)
+ * @brief 心跳包发送任务,每隔100ms被唤醒，检查仿真世界的时间是否到达了预定的发送时间。
  */
 static void Task_Heartbeat(void *PvParameters) {
     uint8_t Buffer[MAVLINK_MAX_PACKET_LEN];
@@ -10,18 +10,16 @@ static void Task_Heartbeat(void *PvParameters) {
     uint64_t LastTime = 0;
 
     for(;;) {
-        // 降低检查频率，每 100ms 唤醒一次
         vTaskDelay(pdMS_TO_TICKS(100));
 
         if (CurrentImuData.Timestamp != 0 && (CurrentImuData.Timestamp - LastTime >= 500000)) {
             LastTime = CurrentImuData.Timestamp;
             
-            // 注意：我们作为主飞控，SystemID=1, CompID=1
             mavlink_msg_heartbeat_pack(
                 1, 1, &Msg, 
-                MAV_TYPE_QUADROTOR,    // 无人机类型
-                MAV_AUTOPILOT_GENERIC, // 通用飞控
-                MAV_MODE_FLAG_CUSTOM_MODE_ENABLED | MAV_MODE_FLAG_SAFETY_ARMED, // 设为解锁状态
+                MAV_TYPE_QUADROTOR,
+                MAV_AUTOPILOT_GENERIC,
+                MAV_MODE_FLAG_CUSTOM_MODE_ENABLED | MAV_MODE_FLAG_SAFETY_ARMED,
                 0, 
                 MAV_STATE_ACTIVE
             );
@@ -33,15 +31,13 @@ static void Task_Heartbeat(void *PvParameters) {
 }
 
 /**
- * @brief 电机指令发送任务 (直接 HIL 模式)
- * @note  直接向 Gazebo 物理引擎发送 HIL_ACTUATOR_CONTROLS
+ * @brief 电机指令发送任务
  */
 static void Task_Motor_Sender(void *PvParameters) {
     MotorCommandMsg_t MotorMsg;
     mavlink_message_t MavMsg;
     uint8_t Buffer[MAVLINK_MAX_PACKET_LEN];
-    
-    // HIL_ACTUATOR_CONTROLS 需要 16 个通道的数组
+
     float Controls[16]; 
     
     static uint8_t BootStep = 0;
@@ -49,19 +45,23 @@ static void Task_Motor_Sender(void *PvParameters) {
     for (;;) {
         // 等待 Attitude 任务算完 PID 后产生的通知
         if (xQueueReceive(MotorControlQueue, &MotorMsg, portMAX_DELAY) == pdPASS) {
+            float M1 = MotorMsg.MotorOutputs[0];
+            float M2 = MotorMsg.MotorOutputs[1];
+            float M3 = MotorMsg.MotorOutputs[2];
+            float M4 = MotorMsg.MotorOutputs[3];
+
             
-            // 初始化所有通道为 -1.0 (底层控制器的停转/最小输出值)
+
             for (int Index = 0; Index < 16; Index++) { 
-                Controls[Index] = -1.0f; 
+                Controls[Index] = 0.0f; 
             }
 
-            // 填充前四个电机的动力 (PID 算出的 0.0 ~ 1.0)
-            Controls[0] = MotorMsg.MotorOutputs[0]; // Roll
-            Controls[1] = MotorMsg.MotorOutputs[1]; // Pitch
-            Controls[2] = MotorMsg.MotorOutputs[2]; // Yaw
-            Controls[3] = MotorMsg.MotorOutputs[3]; // Thrust (油门)
+            Controls[0] = M1; 
+            Controls[1] = M2; 
+            Controls[2] = M3; 
+            Controls[3] = M4; 
 
-            // 💡 直接 HIL 控制包：直接发送给 Gazebo 物理引擎
+            // 6. 打包并通过网桥发送给仿真世界
             mavlink_msg_hil_actuator_controls_pack(
                 1,                          // System ID
                 1,                          // Component ID

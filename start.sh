@@ -5,9 +5,10 @@
 # ==========================================
 
 # 1. 路径配置
-WORLD_PATH="/home/sanko/cc/PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_gazebo-classic/worlds/iris_irlock.world"
-PX4_MODELS_DIR="/home/sanko/cc/PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_gazebo-classic/models"
-PX4_PLUGIN_DIR="/home/sanko/cc/PX4-Autopilot/build/px4_sitl_default/build_gazebo-classic"
+ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+WORLD_PATH="$ROOT_DIR/gazebo/iris_irlock.world"
+PX4_MODELS_DIR="$ROOT_DIR/gazebo/models"
+PX4_PLUGIN_DIR="$ROOT_DIR/gazebo/build_gazebo-classic"
 
 # ==========================================
 # 🛑 终极清理函数 (捕捉各种退出信号)
@@ -58,7 +59,7 @@ gazebo --verbose "$WORLD_PATH" &
 GAZEBO_PID=$!
 
 echo "等待 Gazebo 加载场地 (10秒)..."
-sleep 10
+sleep 3
 
 echo "🔧 [4/6] 动态生成专属的 UDP 版无人机模型..."
 cp "$PX4_MODELS_DIR/iris/iris.sdf" ./cemu_iris.sdf

@@ -4,6 +4,7 @@
 #include "tasks_config.h"
 #include "uart.h" 
 #include "queue.h"
+#include <stdarg.h>
 
 
 #include <stdio.h>
@@ -14,14 +15,7 @@
  */
 #define RAD_TO_DEG (57.2957795f)
 
-/**
- *  定义字节流日志的最大长度
- */
-#define MAX_BYTES_LENGTH 16
-/**
- *  定义文本日志的最大长度
- */
-#define MAX_MSG_LENGTH 16
+#define MAX_TEXT_LENGTH 20
 
 /**
  *  日志类型枚举。
@@ -33,13 +27,11 @@
  *  LOG_TYPE_ALT        ->  无人机海拔日志。
  */
 typedef enum {
-    LOG_TYPE_DATA = 0,
-    LOG_TYPE_MSG  = 1,
-    LOG_TYPE_RAW_HEX = 2,
-    LOG_TYPE_UAV_STATUS = 3,
-    LOG_TYPE_ATT = 4,
-    LOG_TYPE_ALT = 5,
-    LOG_TYPE_MOTOR = 6
+    LOG_TYPE_GENERIC = 0,
+    LOG_TYPE_UAV_STATUS = 1,
+    LOG_TYPE_ATT = 2,
+    LOG_TYPE_ALT = 3,
+    LOG_TYPE_MOTOR = 4
 } LogType_t;
 
 /**
@@ -85,6 +77,7 @@ typedef struct {
     float M[4];
     uint8_t Mode;
 } LogMotor_t;
+
 /*
  *  无人机日志消息结构体，内部包含一个联合体，可根据需要填充不同的日志内容。
  *
@@ -96,40 +89,27 @@ typedef struct {
     uint64_t Timestamp;
     LogType_t LogType;
     union {
-        float Data;
-        char  Msg[MAX_MSG_LENGTH];
-        uint8_t Raw[MAX_BYTES_LENGTH];
         LogUAVStatus_t UAVStatus;
         LogAttitude_t Att;
         LogAltitude_t Alt;
         LogMotor_t Motor;
+        char Text[MAX_TEXT_LENGTH];
     } Payload;
 } LogMessage_t;
 
-/*
- *  初始化日志任务。
+/**
+ * @brief 初始化日志任务。
  */
 void Init_Log_Task(void);
 
-/*
- *  打印一个浮点数到终端的函数，主要用于用于调试过程中。
- *  @param Float 要打印浮点数
- */
-void Log_Data(float Float);
-
-/*
- *  打印纯文本日志到终端。
- *  @param Str 文本日志的内容，最大长度为定义为MAX_MSG_LENGTH
- */
-void Log_Msg(const char* Str);
 
 /**
- *  @brief  打印多个字节日志到终端，最多MAX_BYTES_LENGTH个字节，用于调试串口数据的过程中。
- *          目前会固定打印16个字节，如果期望打印的字节数小于16,未填充的部分会是00。
- *  @param Byte 要打印的字节
- *  @param Len  待打印的字节数量
+ * @brief   格式化打印，功能完全模仿printf。会将传入的参数解析后打包为LogMessage_t类型
+ *          然后将其放入LogQueue队列。最大文本长度为MAX_TEXT_LENGTH。
+ * @param Format 格式化字符串
+ * @param ... 变长参数列表
  */
-void Log_Raw(const uint8_t* Data, uint8_t Len);
+void Log_Generic(const char* Format, ...);
 
 /*
  *  用于打印无人机状态日志的函数，会将无人机的状态信息塞入日志任务队列。
