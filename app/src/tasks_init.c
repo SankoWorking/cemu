@@ -18,6 +18,6 @@ void Init_System(void) {
 
     Init_Command_Tasks();
 
-    Log_Generic("System Started");
+    //Log_Generic("System Started");
     vTaskStartScheduler();
 }

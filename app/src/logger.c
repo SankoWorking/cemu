@@ -45,6 +45,20 @@ static inline int Format_ATT_Log(char *Buffer, size_t Size, const LogMessage_t *
 }
 
 /*
+ *  格式化通用文本日志的内联函数。
+ *  
+ *  @param Buffer 存放格式化后日志的缓冲区
+ *  @param Size 缓冲区的大小
+ *  @param Log  待格式化的日志消息
+ *  @return 格式化后的字符串长度
+ */
+static inline int Format_GENERIC_Log(char *Buffer, size_t Size, const LogMessage_t *Log) {
+    // 假设 Log->Payload.Text 已经在 Log_Generic 中被 vsnprintf 填充
+    return snprintf(Buffer, Size, "[MSG] %s\r\n", 
+                    Log->Payload.Text);
+}
+
+/*
  *  格式化无人机海拔日志的内联函数，会被用于日志任务中，目的是增强代码易读性。
  *  
  *  @param Buffer 存放格式化后日志的缓冲区
@@ -81,7 +95,7 @@ static inline int Format_MOTOR_Log(char *Buffer, size_t Size, const LogMessage_t
  *  日志任务的任务函数，也是最终调用UART0串口发送日志到终端的函数，参数未使用。
  */
 static void Logging_Task(void *pvParameters) {
-    LogMessage_t Log;
+    static LogMessage_t Log;
     char Buffer[128];
     const char* ModuleNames[] = {"SYS", "IMU", "PID", "NAV"};
 
@@ -102,6 +116,8 @@ static void Logging_Task(void *pvParameters) {
                 case LOG_TYPE_MOTOR:
                     Len = Format_MOTOR_Log(Buffer, sizeof(Buffer), &Log);
                     break;
+                case LOG_TYPE_GENERIC:
+                    Len = Format_GENERIC_Log(Buffer, sizeof(Buffer), &Log);
                 default: 
                     break;
             }

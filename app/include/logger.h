@@ -15,7 +15,7 @@
  */
 #define RAD_TO_DEG (57.2957795f)
 
-#define MAX_TEXT_LENGTH 20
+#define MAX_TEXT_LENGTH 32
 
 /**
  *  日志类型枚举。

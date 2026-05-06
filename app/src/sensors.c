@@ -2,25 +2,10 @@
 #include "tasks_interfaces.h"
 
 /**
- * @brief 处理心跳包
- */
-static inline void Process_Heartbeat_Message(const mavlink_message_t* Msg, UAVStatus_t* StatusPtr) {
-    mavlink_heartbeat_t Heartbeat;
-    mavlink_msg_heartbeat_decode(Msg, &Heartbeat);
-    
-    StatusPtr->Timestamp = CurrentSimTimeUs; 
-    StatusPtr->SystemId = Msg->sysid;
-    StatusPtr->BaseMode = Heartbeat.base_mode;
-    StatusPtr->SystemStatus = Heartbeat.system_status;
-    StatusPtr->CustomMode = Heartbeat.custom_mode;
-}
-
-/**
  * @brief 处理 HIL_SENSOR 消息 (ID: 107)。从Gazebo获取仿真时间，并更新全局仿真时间戳CurrentSimTimeUs
  * 
  */
 static inline void Process_HIL_Sensor_Message(const mavlink_message_t* Msg, TaskHandle_t TargetTask) {
-    int count = 0;
     mavlink_hil_sensor_t Hil;
     mavlink_msg_hil_sensor_decode(Msg, &Hil);
 
@@ -40,32 +25,19 @@ static inline void Process_HIL_Sensor_Message(const mavlink_message_t* Msg, Task
     CurrentBaroData.Timestamp   = Hil.time_usec;
     CurrentBaroData.AbsPressure = Hil.abs_pressure;
     CurrentBaroData.PressureAlt = Hil.pressure_alt;
-    
-    // if (TargetTask != NULL) {
-    //     xTaskNotifyGive(TargetTask);
-    // }
+    if (TargetTask != NULL) {
+        xTaskNotifyGive(TargetTask);
+    }
 }
 
 /**
  * @brief MAVLink 消息分发器
  */
-static void Process_Sensor_data(const mavlink_message_t *Msg, TaskHandle_t Handle){
-    switch (Msg->msgid) {
-        case MAVLINK_MSG_ID_HEARTBEAT: {
-            Process_Heartbeat_Message(Msg, &UAVStatus);
-            break;
-        }
-        case MAVLINK_MSG_ID_HIL_SENSOR: {
-            Process_HIL_Sensor_Message(Msg, Handle);
-            //Log_Generic("MSG_ID: %u", Msg->msgid);
-            break;
-        }
-        default:
-           
-            break;
+static void Process_Sensor_data(const mavlink_message_t *Msg, TaskHandle_t Handle) {
+    if (Msg->msgid == MAVLINK_MSG_ID_HIL_SENSOR) {
+        Process_HIL_Sensor_Message(Msg, Handle);
     }
 }
-
 /**
  * @brief 传感器解析任务
  */
