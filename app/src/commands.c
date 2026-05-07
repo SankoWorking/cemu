@@ -2,31 +2,37 @@
 #include "tasks_interfaces.h" 
 
 /**
- * @brief 心跳包发送任务,每隔100ms被唤醒，检查仿真世界的时间是否到达了预定的发送时间。
+ * @brief 心跳包发送任务，标准的 1Hz 独立发送，绝不依赖外部 IMU 时间
  */
 static void Task_Heartbeat(void *PvParameters) {
     uint8_t Buffer[MAVLINK_MAX_PACKET_LEN];
     mavlink_message_t Msg;
-    uint64_t LastTime = 0;
+
+    // FreeRTOS 推荐的精确周期任务写法
+    TickType_t xLastWakeTime;
+    // 设置心跳频率为 1000 毫秒 (1Hz)
+    const TickType_t xFrequency = pdMS_TO_TICKS(250); 
+
+    // 初始化 xLastWakeTime 为当前系统 Tick
+    xLastWakeTime = xTaskGetTickCount();
 
     for(;;) {
-        vTaskDelay(pdMS_TO_TICKS(100));
+        // 让任务精确休眠 1000ms。到时间后自动唤醒。
+        vTaskDelayUntil(&xLastWakeTime, xFrequency);
 
-        if (CurrentImuData.Timestamp != 0 && (CurrentImuData.Timestamp - LastTime >= 500000)) {
-            LastTime = CurrentImuData.Timestamp;
-            
-            mavlink_msg_heartbeat_pack(
-                1, 1, &Msg, 
-                MAV_TYPE_QUADROTOR,
-                MAV_AUTOPILOT_GENERIC,
-                MAV_MODE_FLAG_CUSTOM_MODE_ENABLED | MAV_MODE_FLAG_SAFETY_ARMED,
-                0, 
-                MAV_STATE_ACTIVE
-            );
-            
-            uint16_t Len = mavlink_msg_to_send_buffer(Buffer, &Msg);
-            Send_UART1(Buffer, Len);
-        }
+        // 组装心跳包
+        mavlink_msg_heartbeat_pack(
+            1, 1, &Msg,
+            MAV_TYPE_QUADROTOR,
+            MAV_AUTOPILOT_GENERIC,
+            MAV_MODE_FLAG_CUSTOM_MODE_ENABLED | MAV_MODE_FLAG_SAFETY_ARMED,
+            0,
+            MAV_STATE_ACTIVE
+        );
+
+        // 序列化并发送
+        uint16_t Len = mavlink_msg_to_send_buffer(Buffer, &Msg);
+        Send_UART1(Buffer, Len);
     }
 }
 

@@ -22,9 +22,11 @@ static inline void Process_HIL_Sensor_Message(const mavlink_message_t* Msg, Task
     CurrentImuData.MagY      = Hil.ymag;
     CurrentImuData.MagZ      = Hil.zmag;
 
-    CurrentBaroData.Timestamp   = Hil.time_usec;
-    CurrentBaroData.AbsPressure = Hil.abs_pressure;
-    CurrentBaroData.PressureAlt = Hil.pressure_alt;
+    if (Hil.abs_pressure != 0.0f) {
+        CurrentBaroData.Timestamp   = Hil.time_usec;
+        CurrentBaroData.AbsPressure = Hil.abs_pressure;
+        CurrentBaroData.PressureAlt = Hil.pressure_alt;
+    }
     if (TargetTask != NULL) {
         xTaskNotifyGive(TargetTask);
     }
